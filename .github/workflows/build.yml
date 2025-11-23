@@ -49,12 +49,12 @@ jobs:
       - name: Rust Cache  
         uses: Swatinem/rust-cache@v2  
         with:  
-          key: $${{ matrix.arch }}-$${{ matrix.target }}  
+          key: ${{ matrix.arch }}-${{ matrix.target }}  
   
       - name: Build Binary  
         run: |  
-          echo "Building for $${{ matrix.arch }} using $${{ matrix.cmd }}..."  
-          $${{ matrix.cmd }} build --release --target $${{ matrix.target }}  
+          echo "Building for ${{ matrix.arch }} using ${{ matrix.cmd }}..."  
+          ${{ matrix.cmd }} build --release --target ${{ matrix.target }}  
   
       - name: Grant execute permission for scripts  
         run: chmod +x scripts/*.sh  
