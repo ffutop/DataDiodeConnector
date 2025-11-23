@@ -1,0 +1,74 @@
+name: Rust Build and Package  
+  
+on:  
+  push:  
+    branches: [ master ]  
+  pull_request:  
+    branches: [ master ]  
+  
+env:  
+  CARGO_TERM_COLOR: always  
+  
+jobs:  
+  build:  
+    name: Build for ${{ matrix.arch }}  
+    runs-on: ubuntu-latest
+    strategy:  
+      fail-fast: false  
+      matrix:  
+        include:  
+          - arch: amd64  
+            target: x86_64-unknown-linux-musl  
+            use_cross: false  
+            cmd: cargo  
+          - arch: arm64  
+            target: aarch64-unknown-linux-musl  
+            use_cross: true  
+            cmd: cross  
+  
+    steps:  
+      - name: Checkout repository  
+        uses: actions/checkout@v4  
+  
+      - name: Install Rust toolchain  
+        uses: dtolnay/rust-toolchain@stable  
+        with:  
+          toolchain: stable  
+          targets: ${{ matrix.target }}  
+  
+      - name: Install cross  
+        if: matrix.use_cross  
+        uses: taiki-e/install-action@cross  
+  
+      - name: Install musl-tools  
+        if: matrix.use_cross == false  
+        run: |  
+          sudo apt-get update  
+          sudo apt-get install -y musl-tools  
+  
+      - name: Rust Cache  
+        uses: Swatinem/rust-cache@v2  
+        with:  
+          key: $${{ matrix.arch }}-$${{ matrix.target }}  
+  
+      - name: Build Binary  
+        run: |  
+          echo "Building for $${{ matrix.arch }} using $${{ matrix.cmd }}..."  
+          $${{ matrix.cmd }} build --release --target $${{ matrix.target }}  
+  
+      - name: Grant execute permission for scripts  
+        run: chmod +x scripts/*.sh  
+  
+      - name: Package Artifacts  
+        working-directory: ./scripts  
+        env:  
+          SKIP_RUST_BUILD: true 
+        run: ./create_tars.sh ${{ matrix.arch }}  
+  
+      - name: Upload artifacts  
+        uses: actions/upload-artifact@v4  
+        with:  
+          name: osdd-packages-${{ matrix.arch }}  
+          path: |  
+            scripts/osdd_ingress-${{ matrix.arch }}.tar.gz  
+            scripts/osdd_egress-${{ matrix.arch }}.tar.gz  
