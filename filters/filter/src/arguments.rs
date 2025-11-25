@@ -29,7 +29,7 @@ pub struct OptIngress {
     )]
     pub socket_path_out: String,
 
-    ///StatsD server host.
+    ///Word to filter.
     #[structopt(long = "word_to_filter", default_value = "secret")]
     pub word_to_filter: String,
 

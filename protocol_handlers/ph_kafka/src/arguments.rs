@@ -67,7 +67,7 @@ pub struct OptIngress {
     #[structopt(long = "log_level", default_value = "Warn")]
     pub log_level: String,
 
-    ///Log level for logging
+    ///Name of the handler
     #[structopt(long = "handler_name", default_value = "ph_kafka_ingress")]
     pub handler_name: String,
 
