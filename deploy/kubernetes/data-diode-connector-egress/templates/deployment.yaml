@@ -1,0 +1,222 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "data-diode-connector-egress.fullname" . }}
+  labels:
+    {{- include "data-diode-connector-egress.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "data-diode-connector-egress.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "data-diode-connector-egress.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "data-diode-connector-egress.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: fluentbit
+          image: {{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.fluentbit.repository }}:{{ .Values.images.fluentbit.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.images.fluentbit.pullPolicy }}
+          command: ["/fluent-bit/bin/fluent-bit"]
+          args: [ "-c", "/fluent-bit/etc/fluent-bit.yaml" ]
+          startupProbe:
+            httpGet:
+              path: /
+              port: 2020
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 2020
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 2020
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /fluent-bit/etc/fluent-bit.yaml
+              subPath: fluent-bit.yaml
+        - name: transport-udp-receive
+          securityContext:
+            {{- toYaml .Values.transportUdpReceive.securityContext | nindent 12 }}
+          image: {{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.transportUdpReceive.repository }}:{{ .Values.images.transportUdpReceive.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.images.transportUdpReceive.pullPolicy }}
+          command: ["/transport_udp_receive"]
+          args:
+          - "--bip_buffer_element_count"
+          - "{{ .Values.transportUdpReceive.bipBufferElementCount }}"
+          - "--from_host_sys_log"
+          - "{{ .Values.transportUdpReceive.fromHostSysLog }}"
+          - "--from_port_sys_log"
+          - "{{ .Values.transportUdpReceive.fromPortSysLog }}"
+          - "--to_host_sys_log"
+          - "{{ .Values.transportUdpReceive.toHostSysLog }}"
+          - "--to_port_sys_log"
+          - "{{ .Values.transportUdpReceive.toPortSysLog }}"
+          - "--handler_name"
+          - "{{ .Values.transportUdpReceive.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.transportUdpReceive.logLevel }}"
+          - "--stats_server_address"
+          - "{{ .Values.transportUdpReceive.statsServerAddress }}"
+          - "--stats_server_port"
+          - "{{ .Values.transportUdpReceive.statsServerPort }}"
+          - "--receiver_address"
+          - "{{ .Values.transportUdpReceive.receiverAddress }}"
+          - "--receiver_port"
+          - "{{ .Values.transportUdpReceive.receiverPort }}"
+          - "--socket_path"
+          - "{{ .Values.transportUdpReceive.socketPath }}"
+          ports:
+          - name: ddc-recv-port
+            containerPort: {{ .Values.transportUdpReceive.receiverPort }}
+            protocol: UDP
+          startupProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep transport_udp_receive || exit 1"
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep transport_udp_receive || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep transport_udp_receive || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+          - name: shared-volume
+            mountPath: /shared
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: ph-kafka-egress
+          securityContext:
+            {{- toYaml .Values.phKafkaEgress.securityContext | nindent 12 }}
+          image: {{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.phKafkaEgress.repository }}:{{ .Values.images.phKafkaEgress.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.images.phKafkaEgress.pullPolicy }}
+          command: ["/ph_kafka_egress"]
+          args:
+          - "--bip_buffer_element_count"
+          - "{{ .Values.phKafkaEgress.bipBufferElementCount }}"
+          - "--from_host_sys_log"
+          - "{{ .Values.phKafkaEgress.fromHostSysLog }}"
+          - "--from_port_sys_log"
+          - "{{ .Values.phKafkaEgress.fromPortSysLog }}"
+          - "--to_host_sys_log"
+          - "{{ .Values.phKafkaEgress.toHostSysLog }}"
+          - "--to_port_sys_log"
+          - "{{ .Values.phKafkaEgress.toPortSysLog }}"
+          - "--handler_name"
+          - "{{ .Values.phKafkaEgress.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.phKafkaEgress.logLevel }}"
+          - "--stats_server_address"
+          - "{{ .Values.phKafkaEgress.statsServerAddress }}"
+          - "--stats_server_port"
+          - "{{ .Values.phKafkaEgress.statsServerPort }}"
+          - "--socket_path"
+          - "{{ .Values.phKafkaEgress.socketPath }}"
+          - "--host_kafka_server"
+          - "{{ .Values.phKafkaEgress.hostKafkaServer }}"
+          - "--port_kafka_server"
+          - "{{ .Values.phKafkaEgress.portKafkaServer }}"
+          - "--in_replacement"
+          - "{{ .Values.phKafkaEgress.inReplacement }}"
+          - "--out_replacement"
+          - "{{ .Values.phKafkaEgress.outReplacement }}"
+          startupProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_egress || exit 1"
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_egress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_egress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+          - name: shared-volume
+            mountPath: /shared
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "data-diode-connector-egress.fullname" . }}-config
+        - name: shared-volume
+          emptyDir:
+            medium: Memory
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

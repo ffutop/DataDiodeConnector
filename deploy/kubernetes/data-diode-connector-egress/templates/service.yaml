@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "data-diode-connector-egress.fullname" . }}
+  labels:
+    {{- include "data-diode-connector-egress.labels" . | nindent 4 }}
+spec:
+  type: {{ .Values.service.type }}
+  ports:
+    - port: {{ .Values.transportUdpReceive.receiverPort }}
+      targetPort: {{ .Values.transportUdpReceive.receiverPort }}
+      protocol: UDP
+      name: ddc-recv-port
+  selector:
+    {{- include "data-diode-connector-egress.selectorLabels" . | nindent 4 }}

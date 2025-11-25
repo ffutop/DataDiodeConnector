@@ -1,0 +1,108 @@
+# data-diode-connector-ingress specific values
+replicaCount: 1
+
+images:
+  registry: ""
+  transportUdpSend:
+    repository: ffutop/ddc-transport-udp-send
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  phKafkaIngress:
+    repository: ffutop/ddc-ph-kafka-ingress
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  filter:
+    repository: ffutop/ddc-filter
+    pullPolicy: IfNotPresent
+    tag: ""
+  fluentbit:
+    repository: fluent/fluent-bit
+    pullPolicy: IfNotPresent
+    tag: "4.2.0"
+
+transportUdpSend:
+  securityContext:
+    capabilities:
+      add: ["SYS_NICE"]
+  # The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+  bipBufferElementCount: 10
+  # From syslog server address
+  fromHostSysLog: 0.0.0.0
+  # From syslog server port
+  fromPortSysLog: 8343
+  # To syslog udp address
+  toHostSysLog: 127.0.0.1
+  # To syslog udp port
+  toPortSysLog: 8082
+  # Name of the handler
+  handlerName: "transport_udp_send"
+  # Log level for logging [Trace, Debug, Info, Warn, Error]
+  logLevel: "Info"
+  # The address of the stats server
+  statsServerAddress: 0.0.0.0
+  # The port of the stats server
+  statsServerPort: 8081
+  # Address the receiver is hosted on
+  receiverAddress: ""
+  # Port the receiver should be listening on
+  receiverPort: "1234"
+  # Address the sender is hosted on
+  senderAddress: 0.0.0.0
+  # Port the sender is listening on
+  senderPort: "33333"
+  # Send delay in milliseconds used for every UDP message
+  sendDelayMs: 5
+  # Location of the socket
+  socketPath: "/shared/handler_to_transport"
+
+phKafkaIngress:
+  securityContext: {}
+  # The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+  bipBufferElementCount: 2
+  # From syslog server address
+  fromHostSysLog: 0.0.0.0
+  # From syslog server port
+  fromPortSysLog: 8127
+  # To syslog udp address
+  toHostSysLog: 127.0.0.1
+  # To syslog udp port
+  toPortSysLog: 8082
+  # Name of the handler
+  handlerName: "ph_kafka_ingress"
+  # Log level for logging [Trace, Debug, Info, Warn, Error]
+  logLevel: "Info"
+  # The address of the stats server
+  statsServerAddress: 0.0.0.0
+  # The port of the stats server
+  statsServerPort: 8081
+  # Kafka server host
+  hostKafkaServer: "kafka.kafka.svc.cluster.local"
+  # Kafka server port
+  portKafkaServer: "9092"
+  # Topic to read from the kafka server
+  topicName: "TestTopic"
+  # Max bytes per message settings for consumer
+  maxBytesPerPartition: "1000000"
+  # Location of the socket
+  socketPath: "/shared/handler_to_transport"
+
+imagePullSecrets: []
+nameOverride: ""
+fullnameOverride: ""
+
+serviceAccount:
+  create: true
+  annotations: {}
+  name: ""
+
+podAnnotations: {}
+
+podSecurityContext: {}
+
+resources: {}
+
+nodeSelector: {}
+
+tolerations: []
+
+affinity: {}

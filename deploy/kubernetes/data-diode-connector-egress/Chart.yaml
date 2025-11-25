@@ -1,0 +1,6 @@
+apiVersion: v2
+name: data-diode-connector-egress
+description: A Helm chart for Kubernetes to deploy the Data Diode Connector Egress
+type: application
+version: 1.0.0
+appVersion: "1.0.0"

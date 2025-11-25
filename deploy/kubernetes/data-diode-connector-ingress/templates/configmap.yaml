@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "data-diode-connector-ingress.fullname" . }}-config
+  labels:
+    {{- include "data-diode-connector-ingress.labels" . | nindent 4 }}
+data:
+  fluent-bit.yaml: |
+    service:
+      flush: 1
+      parsers_file: /fluent-bit/etc/parsers.conf
+      http_server: true
+      http_listen: 0.0.0.0
+      http_port: 2020
+
+    pipeline:
+      inputs:
+        - name: syslog
+          parser: syslog-rfc3164
+          mode: udp
+          port: 8082
+
+      outputs:
+        - name: stdout
+          match: '*'

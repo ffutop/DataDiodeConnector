@@ -1,0 +1,230 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "data-diode-connector-ingress.fullname" . }}
+  labels:
+    {{- include "data-diode-connector-ingress.labels" . | nindent 4 }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      {{- include "data-diode-connector-ingress.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "data-diode-connector-ingress.selectorLabels" . | nindent 8 }}
+    spec:
+      {{- with .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "data-diode-connector-ingress.serviceAccountName" . }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      containers:
+        - name: fluentbit
+          image: {{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.fluentbit.repository }}:{{ .Values.images.fluentbit.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.images.fluentbit.pullPolicy }}
+          command: ["/fluent-bit/bin/fluent-bit"]
+          args: [ "-c", "/fluent-bit/etc/fluent-bit.yaml" ]
+          startupProbe:
+            httpGet:
+              path: /
+              port: 2020
+            initialDelaySeconds: 10
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 2020
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 2020
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: config-volume
+              mountPath: /fluent-bit/etc/fluent-bit.yaml
+              subPath: fluent-bit.yaml
+        - name: transport-udp-send
+          securityContext:
+            {{- toYaml .Values.transportUdpSend.securityContext | nindent 12 }}
+          image: "{{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.transportUdpSend.repository }}:{{ .Values.images.transportUdpSend.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.images.transportUdpSend.pullPolicy }}
+          env:
+          - name: RUST_BACKTRACE
+            value: "1"
+          command: ["/transport_udp_send"]
+          args:
+          - "--bip_buffer_element_count"
+          - "{{ .Values.transportUdpSend.bipBufferElementCount }}"
+          - "--from_host_sys_log"
+          - "{{ .Values.transportUdpSend.fromHostSysLog }}"
+          - "--from_port_sys_log"
+          - "{{ .Values.transportUdpSend.fromPortSysLog }}"
+          - "--to_host_sys_log"
+          - "{{ .Values.transportUdpSend.toHostSysLog }}"
+          - "--to_port_sys_log"
+          - "{{ .Values.transportUdpSend.toPortSysLog }}"
+          - "--handler_name"
+          - "{{ .Values.transportUdpSend.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.transportUdpSend.logLevel }}"
+          - "--stats_server_address"
+          - "{{ .Values.transportUdpSend.statsServerAddress }}"
+          - "--stats_server_port"
+          - "{{ .Values.transportUdpSend.statsServerPort }}"
+          - "--receiver_address"
+          - "{{ .Values.transportUdpSend.receiverAddress }}"
+          - "--receiver_port"
+          - "{{ .Values.transportUdpSend.receiverPort }}"
+          - "--sender_address"
+          - "{{ .Values.transportUdpSend.senderAddress }}"
+          - "--sender_port"
+          - "{{ .Values.transportUdpSend.senderPort }}"
+          - "--send_delay_ms"
+          - "{{ .Values.transportUdpSend.sendDelayMs }}"
+          - "--socket_path"
+          - "{{ .Values.transportUdpSend.socketPath }}"
+          startupProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep transport_udp_send || exit 1"
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep transport_udp_send || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep transport_udp_send || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+          - name: shared-volume
+            mountPath: /shared
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        - name: ph-kafka-ingress
+          securityContext:
+            {{- toYaml .Values.phKafkaIngress.securityContext | nindent 12 }}
+          image: "{{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.phKafkaIngress.repository }}:{{ .Values.images.phKafkaIngress.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.images.phKafkaIngress.pullPolicy }}
+          env:
+          - name: RUST_BACKTRACE
+            value: "1"
+          command: ["/ph_kafka_ingress"]
+          args:
+          - "--bip_buffer_element_count"
+          - "{{ .Values.phKafkaIngress.bipBufferElementCount }}"
+          - "--from_host_sys_log"
+          - "{{ .Values.phKafkaIngress.fromHostSysLog }}"
+          - "--from_port_sys_log"
+          - "{{ .Values.phKafkaIngress.fromPortSysLog }}"
+          - "--to_host_sys_log"
+          - "{{ .Values.phKafkaIngress.toHostSysLog }}"
+          - "--to_port_sys_log"
+          - "{{ .Values.phKafkaIngress.toPortSysLog }}"
+          - "--handler_name"
+          - "{{ .Values.phKafkaIngress.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.phKafkaIngress.logLevel }}"
+          - "--stats_server_address"
+          - "{{ .Values.phKafkaIngress.statsServerAddress }}"
+          - "--stats_server_port"
+          - "{{ .Values.phKafkaIngress.statsServerPort }}"
+          - "--host_kafka_server"
+          - "{{ .Values.phKafkaIngress.hostKafkaServer }}"
+          - "--port_kafka_server"
+          - "{{ .Values.phKafkaIngress.portKafkaServer }}"
+          - "--topic_name"
+          - "{{ .Values.phKafkaIngress.topicName }}"
+          - "--max_bytes_per_partition"
+          - "{{ .Values.phKafkaIngress.maxBytesPerPartition }}"
+          - "--socket_path"
+          - "{{ .Values.phKafkaIngress.socketPath }}"
+          startupProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_ingress || exit 1"
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_ingress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_ingress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+          - name: shared-volume
+            mountPath: /shared
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      volumes:
+        - name: config-volume
+          configMap:
+            name: {{ include "data-diode-connector-ingress.fullname" . }}-config
+        - name: shared-volume
+          emptyDir:
+            medium: "Memory"
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
