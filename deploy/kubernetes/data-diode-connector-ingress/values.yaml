@@ -11,80 +11,143 @@ images:
     repository: ffutop/ddc-ph-kafka-ingress
     pullPolicy: IfNotPresent
     tag: "latest"
+  phUdpIngress:
+    repository: ffutop/ddc-ph-udp-ingress
+    pullPolicy: IfNotPresent
+    tag: "latest"
   filter:
     repository: ffutop/ddc-filter
     pullPolicy: IfNotPresent
-    tag: ""
+    tag: "latest"
   fluentbit:
     repository: fluent/fluent-bit
     pullPolicy: IfNotPresent
     tag: "4.2.0"
 
+# Protocol Handler Configuration
+# Select the input protocol handler type: "kafka" or "udp"
+protocolHandler:
+  type: "kafka"
+
+  kafka:
+    securityContext: {}
+    # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+    bipBufferElementCount: 2
+    # -- From syslog server address
+    fromHostSysLog: 0.0.0.0
+    # -- From syslog server port
+    fromPortSysLog: 8127
+    # -- To syslog udp address
+    toHostSysLog: 127.0.0.1
+    # -- To syslog udp port
+    toPortSysLog: 8082
+    # -- Name of the handler
+    handlerName: "ph_kafka_ingress"
+    # -- Log level for logging [Trace, Debug, Info, Warn, Error]
+    logLevel: "Warn"
+    # -- The address of the stats server
+    statsServerAddress: 0.0.0.0
+    # -- The port of the stats server
+    statsServerPort: 8081
+    # -- The Kafka server host
+    hostKafkaServer: "kafka.kafka.svc.cluster.local"
+    # -- The Kafka server port
+    portKafkaServer: 9092
+    # -- The Kafka topic name to subscribe to
+    topicName: "TestTopic"
+    # -- The maximum number of bytes per partition to fetch from Kafka
+    maxBytesPerPartition: 1000000
+    # The socket path is dynamically managed by the deployment template
+
+  udp:
+    securityContext: {}
+    # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+    bipBufferElementCount: 10
+    # -- Listening port for the UDP server
+    listeningPort: 1235
+    # -- The address of the stats server
+    statsServerAddress: 127.0.0.1
+    # -- The port of the stats server
+    statsServerPort: 8125
+    # -- From syslog server address
+    fromHostSysLog: 0.0.0.0
+    # -- From syslog server port
+    fromPortSysLog: 8127
+    # -- To syslog udp address
+    toHostSysLog: 127.0.0.1
+    # -- To syslog udp port
+    toPortSysLog: 8082
+    # -- Log level for logging [Trace, Debug, Info, Warn, Error]
+    logLevel: "Warn"
+    # -- Name of the handler
+    handlerName: "ph_udp_ingress"
+    # The socket path is dynamically managed by the deployment template
+
+# Filter Chain Configuration
+# Define a list of filters to process data sequentially
+filters:
+  - name: "default-filter"
+    enabled: false
+    securityContext: {}
+    # Overwrite image if using a specific filter implementation
+    # repository: ffutop/ddc-filter
+    # tag: latest
+    # -- The word to filter out
+    wordToFilter: "secret"
+    # -- The address of the stats server
+    hostStatsServer: 127.0.0.1
+    # -- The port of the stats server
+    portStatsServer: 8125
+    # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+    bipBufferElementCount: 10
+    # -- The maximum message size in bytes
+    maxMessageSize: 1050000
+    # -- From syslog server address
+    fromHostSysLog: 0.0.0.0
+    # -- From syslog server port
+    fromPortSysLog: 8127
+    # -- To syslog udp address
+    toHostSysLog: 127.0.0.1
+    # -- To syslog udp port
+    toPortSysLog: 8082
+    # -- Log level for logging [Trace, Debug, Info, Warn, Error]
+    logLevel: "Warn"
+    # -- Name of the handler
+    handlerName: "filter"
+
 transportUdpSend:
   securityContext:
     capabilities:
       add: ["SYS_NICE"]
-  # The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+  # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
   bipBufferElementCount: 10
-  # From syslog server address
+  # -- From syslog server address
   fromHostSysLog: 0.0.0.0
-  # From syslog server port
+  # -- From syslog server port
   fromPortSysLog: 8343
-  # To syslog udp address
+  # -- To syslog udp address
   toHostSysLog: 127.0.0.1
-  # To syslog udp port
+  # -- To syslog udp port
   toPortSysLog: 8082
-  # Name of the handler
+  # -- Name of the handler
   handlerName: "transport_udp_send"
-  # Log level for logging [Trace, Debug, Info, Warn, Error]
-  logLevel: "Info"
-  # The address of the stats server
+  # -- Log level for logging [Trace, Debug, Info, Warn, Error]
+  logLevel: "Warn"
+  # -- The address of the stats server
   statsServerAddress: 0.0.0.0
-  # The port of the stats server
+  # -- The port of the stats server
   statsServerPort: 8081
-  # Address the receiver is hosted on
-  receiverAddress: ""
-  # Port the receiver should be listening on
-  receiverPort: "1234"
-  # Address the sender is hosted on
+  # -- Address the receiver is hosted on
+  receiverAddress: 0.0.0.0
+  # -- Port the receiver should be listening on
+  receiverPort: 1234
+  # -- Address the sender is hosted on
   senderAddress: 0.0.0.0
-  # Port the sender is listening on
-  senderPort: "33333"
-  # Send delay in milliseconds used for every UDP message
+  # -- Port the sender is listening on
+  senderPort: 33333
+  # -- Send delay in milliseconds used for every UDP message
   sendDelayMs: 5
-  # Location of the socket
-  socketPath: "/shared/handler_to_transport"
-
-phKafkaIngress:
-  securityContext: {}
-  # The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
-  bipBufferElementCount: 2
-  # From syslog server address
-  fromHostSysLog: 0.0.0.0
-  # From syslog server port
-  fromPortSysLog: 8127
-  # To syslog udp address
-  toHostSysLog: 127.0.0.1
-  # To syslog udp port
-  toPortSysLog: 8082
-  # Name of the handler
-  handlerName: "ph_kafka_ingress"
-  # Log level for logging [Trace, Debug, Info, Warn, Error]
-  logLevel: "Info"
-  # The address of the stats server
-  statsServerAddress: 0.0.0.0
-  # The port of the stats server
-  statsServerPort: 8081
-  # Kafka server host
-  hostKafkaServer: "kafka.kafka.svc.cluster.local"
-  # Kafka server port
-  portKafkaServer: "9092"
-  # Topic to read from the kafka server
-  topicName: "TestTopic"
-  # Max bytes per message settings for consumer
-  maxBytesPerPartition: "1000000"
-  # Location of the socket
-  socketPath: "/shared/handler_to_transport"
+  # -- Socket path is dynamically managed by the deployment template
 
 imagePullSecrets: []
 nameOverride: ""

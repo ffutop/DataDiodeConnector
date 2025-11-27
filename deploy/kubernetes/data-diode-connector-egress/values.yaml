@@ -8,76 +8,145 @@ images:
   registry: ""
   transportUdpReceive:
     repository: ffutop/ddc-transport-udp-receive
-    tag: "latest"
     pullPolicy: IfNotPresent
+    tag: "latest"
   phKafkaEgress:
     repository: ffutop/ddc-ph-kafka-egress
-    tag: "latest"
     pullPolicy: IfNotPresent
+    tag: "latest"
+  phUdpEgress:
+    repository: ffutop/ddc-ph-udp-egress
+    pullPolicy: IfNotPresent
+    tag: "latest"
+  filter:
+    repository: ffutop/ddc-filter
+    pullPolicy: IfNotPresent
+    tag: "latest"
   fluentbit:
     repository: fluent/fluent-bit
     pullPolicy: IfNotPresent
     tag: "4.2.0"
 
+# Protocol Handler Configuration
+# Select the output protocol handler type: "kafka" or "udp"
+protocolHandler:
+  type: "kafka"
+
+  kafka:
+    securityContext: {}
+    # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+    bipBufferElementCount: 10
+    # -- From syslog server host
+    fromHostSysLog: "0.0.0.0"
+    # -- From syslog server port
+    fromPortSysLog: 8129
+    # -- To syslog server host
+    toHostSysLog: "127.0.0.1"
+    # -- To syslog server port
+    toPortSysLog: 8082
+    # -- Name of the handler
+    handlerName: "ph-kafka-egress"
+    # -- Log level for logging
+    logLevel: "Info"
+    # -- The address of the stats server
+    statsServerAddress: "127.0.0.1"
+    # -- The port of the stats server
+    statsServerPort: 8125
+    # -- kafka server host
+    hostKafkaServer: "kafka.kafka.svc.cluster.local"
+    # -- kafka server port
+    portKafkaServer: 9092
+    # -- Topic to replace
+    inReplacement: "TestTopic"
+    # -- replace topic
+    outReplacement: "FinalTestTopic"
+    # The socket path is dynamically managed by the deployment template
+
+  udp:
+    securityContext: {}
+    # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+    bipBufferElementCount: 10
+    # -- From syslog server host
+    fromHostSysLog: "0.0.0.0"
+    # -- From syslog server port
+    fromPortSysLog: 8129
+    # -- To syslog server host
+    toHostSysLog: "127.0.0.1"
+    # -- To syslog server port
+    toPortSysLog: 8082
+    # -- Name of the handler
+    handlerName: "ph-udp-egress"
+    # -- Log level for logging
+    logLevel: "Info"
+    # -- The address of the stats server
+    statsServerAddress: "127.0.0.1"
+    # -- The port of the stats server
+    statsServerPort: 8125
+    # -- The address of the UDP receiver
+    udpReceiverHost: "127.0.0.1"
+    # -- The port of the UDP receiver
+    udpReceiverPort: 8125
+    # The socket path is dynamically managed by the deployment template
+
+# Filter Chain Configuration
+# Define a list of filters to process data sequentially
+filters:
+  - name: "default-filter"
+    enabled: false
+    securityContext: {}
+    # Overwrite image if using a specific filter implementation
+    # repository: ffutop/ddc-filter
+    # tag: latest
+    # -- The word to filter out
+    wordToFilter: "secret"
+    # -- The address of the stats server
+    hostStatsServer: 127.0.0.1
+    # -- The port of the stats server
+    portStatsServer: 8125
+    # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+    bipBufferElementCount: 10
+    # -- The maximum message size in bytes
+    maxMessageSize: 1050000
+    # -- From syslog server address
+    fromHostSysLog: 0.0.0.0
+    # -- From syslog server port
+    fromPortSysLog: 8127
+    # -- To syslog udp address
+    toHostSysLog: 127.0.0.1
+    # -- To syslog udp port
+    toPortSysLog: 8082
+    # -- Log level for logging [Trace, Debug, Info, Warn, Error]
+    logLevel: "Warn"
+    # -- Name of the handler
+    handlerName: "filter"
+
 transportUdpReceive:
   securityContext:
     capabilities:
       add: ["SYS_NICE"]
-  # The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
+  # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
   bipBufferElementCount: 10
-  # From syslog server host
+  # -- From syslog server host
   fromHostSysLog: 0.0.0.0
-  # From syslog server port
+  # -- From syslog server port
   fromPortSysLog: 8342
-  # To syslog server host
+  # -- To syslog server host
   toHostSysLog: 127.0.0.1
-  # To syslog server port
+  # -- To syslog server port
   toPortSysLog: 8082
-  # Name of the handler
-  handlerName: "transport-udp-receiver"
-  # Log level for logging
+  # -- Name of the handler
+  handlerName: "transport-udp-receive"
+  # -- Log level for logging
   logLevel: "Info"
-  # The address of the stats server
+  # -- The address of the stats server
   statsServerAddress: 127.0.0.1
-  # The port of the stats server
+  # -- The port of the stats server
   statsServerPort: 8125
-  # Address the receiver is host on
+  # -- Address the receiver is host on
   receiverAddress: 0.0.0.0
-  # Port the receiver should be listening on
+  # -- Port the receiver should be listening on
   receiverPort: 1234
-  # Location of the socket
-  socketPath: "/shared/transport_to_handler"
-
-phKafkaEgress:
-  securityContext: {}
-  # The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
-  bipBufferElementCount: 10
-  # From syslog server host
-  fromHostSysLog: 0.0.0.0
-  # From syslog server port
-  fromPortSysLog: 8129
-  # To syslog server host
-  toHostSysLog: 127.0.0.1
-  # To syslog server port
-  toPortSysLog: 8082
-  # Name of the handler
-  handlerName: "ph-kafka-egress"
-  # Log level for logging
-  logLevel: "Info"
-  # StatsD server host
-  statsServerAddress: 127.0.0.1
-  # The port of the stats server
-  statsServerPort: 8125
-  # Location of the socket
-  socketPath: "/shared/transport_to_handler"
-  # kafka server host
-  hostKafkaServer: "kafka.kafka.svc.cluster.local"
-  # kafka server port
-  portKafkaServer: 9092
-  # Topic to replace
-  inReplacement: "TestTopic"
-  # replace topic
-  outReplacement: "FinalTestTopic"
+  # The socket path is dynamically managed by the deployment template
 
 imagePullSecrets: []
 nameOverride: ""
