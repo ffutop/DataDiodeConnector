@@ -1,0 +1,42 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+## 🚀 Introduction
+
+The **Data Diode Connector Egress** is the critical *receiving* component of the open-source [Data Diode Connector](https://data-diode-connector.ffutop.com?utm_source=artifacthub&utm_medium=readme&utm_campaign=egress) project.
+
+Designed for high-security environments (OT/ICS, Defense, Critical Infrastructure), this Helm chart deploys the Egress service which collects data from your secure network and transmits it via a strictly unidirectional UDP stream to the Ingress component.
+
+> **🔒 Core Value:** Physical and Logical network isolation while maintaining real-time data flow.
+
+## ✨ Key Features
+
+- **Strict Unidirectional Transport:** enforcing one-way data flow at the software level (UDP).
+- **High-Throughput Rust Core:** Optimized for minimal latency and maximum packet density.
+- **Configurable Inputs:** Supports collecting data from Kafka, raw UDP, or TCP sockets.
+- **Observability:** Built-in Prometheus metrics for monitoring packet loss and throughput.
+
+## 📚 Documentation & Support
+
+For comprehensive deployment guides, architectural details, and hardware setup examples, please visit our **[Official Documentation](https://data-diode-connector.ffutop.com?utm_source=artifacthub&utm_medium=readme&utm_campaign=egress)**.
+
+- [Architecture Overview](https://data-diode-connector.ffutop.com/en/software_architecture.html)
+- [Configuration Reference](https://data-diode-connector.ffutop.com/en/configuration_reference.html)
+- [Deployment Topologies](https://data-diode-connector.ffutop.com/en/deployment_topologies.html)
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+**Official Site:** <https://data-diode-connector.ffutop.com>
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+

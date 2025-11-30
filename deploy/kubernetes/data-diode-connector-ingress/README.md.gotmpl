@@ -1,0 +1,42 @@
+{{ template "chart.header" . }}
+{{ template "chart.deprecationWarning" . }}
+
+{{ template "chart.badgesSection" . }}
+
+## 🚀 Introduction
+
+The **Data Diode Connector Ingress** is the *sending* component of the open-source [Data Diode Connector](https://data-diode-connector.ffutop.com?utm_source=artifacthub&utm_medium=readme&utm_campaign=ingress) project.
+
+Deployed on the destination network (Low Side), this Helm chart listens for the unidirectional UDP stream sent by the Egress component, reconstructs the data stream, and forwards it to your target destination (Kafka, TCP, etc.).
+
+> **🔒 Core Value:** Securely importing data into your analytics/business network without exposing the source network.
+
+## ✨ Key Features
+
+- **Packet Reconstruction:** Advanced logic to handle UDP packet ordering and frame reassembly.
+- **Loss Detection:** Real-time metrics on missing packets and link health.
+- **Flexible Outputs:** Forwards reconstructed data to Kafka topics, UDP listeners, or TCP endpoints.
+- **Kubernetes Native:** Ready for production deployment with Helm.
+
+## 📚 Documentation & Support
+
+For comprehensive deployment guides, architectural details, and hardware setup examples, please visit our **[Official Documentation](https://data-diode-connector.ffutop.com?utm_source=artifacthub&utm_medium=readme&utm_campaign=ingress)**.
+
+- [Architecture Overview](https://data-diode-connector.ffutop.com/en/software_architecture.html)
+- [Configuration Reference](https://data-diode-connector.ffutop.com/en/configuration_reference.html)
+- [Deployment Topologies](https://data-diode-connector.ffutop.com/en/deployment_topologies.html)
+
+{{ template "chart.description" . }}
+
+{{ template "chart.homepageLine" . }}
+
+**Official Site:** <https://data-diode-connector.ffutop.com>
+
+{{ template "chart.maintainersSection" . }}
+
+{{ template "chart.sourcesSection" . }}
+
+{{ template "chart.requirementsSection" . }}
+
+{{ template "chart.valuesSection" . }}
+
