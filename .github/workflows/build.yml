@@ -142,6 +142,15 @@ jobs:
             BIN_FILE=${{ matrix.artifact_name }}
             BIN_DIRECTORY=binaries
 
+      - name: Update Docker Hub Description
+        uses: peter-evans/dockerhub-description@v4
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PASSWORD }}
+          repository: ${{ secrets.DOCKERHUB_USERNAME }}/${{ steps.sanitize.outputs.name }}
+          readme-filepath: ./README.md
+          short-description: "Data Diode Connector component: ${{ steps.sanitize.outputs.name }}"
+
   build-and-push-helm-charts:
     name: Build and Push Helm Charts
     runs-on: ubuntu-latest
