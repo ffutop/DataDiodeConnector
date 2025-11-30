@@ -1,5 +1,7 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig, HeadConfig } from 'vitepress'
 import { withMermaid } from 'vitepress-plugin-mermaid'
+
+const hostname = 'https://data-diode-connector.ffutop.com'
 
 // https://vitepress.dev/reference/site-config
 export default withMermaid(defineConfig({
@@ -13,10 +15,95 @@ export default withMermaid(defineConfig({
     // Google Fonts: Risque
     ['link', { rel: 'preconnect', href: 'https://fonts.googleapis.com' }],
     ['link', { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' }],
-    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Risque&display=swap' }]
+    ['link', { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Risque&display=swap' }],
+
+    // Google Analytics 4 (GA4)
+    [
+      'script',
+      { async: '', src: 'https://www.googletagmanager.com/gtag/js?id=G-CXJFXYK0H6' }
+    ],
+    [
+      'script',
+      {},
+      `window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-CXJFXYK0H6');`
+    ]
   ],
 
   cleanUrls: true,
+  lastUpdated: true,
+
+  transformHead: ({ pageData }) => {
+    const head: HeadConfig[] = []
+    
+    // 1. Canonical URL
+    // Remove leading slash from relativePath if exists
+    const cleanPath = pageData.relativePath.replace(/((^|\/)index)?\.md$/, '$2')
+    const canonicalUrl = `${hostname}/${cleanPath}`
+      .replace(/\/$/, '') // remove trailing slash
+
+    head.push(['link', { rel: 'canonical', href: canonicalUrl }])
+
+    // 2. Hreflang (Multi-language SEO)
+    let alternatePath = ''
+    let currentLang = ''
+    let alternateLang = ''
+
+    if (pageData.relativePath.startsWith('en/')) {
+      currentLang = 'en'
+      alternateLang = 'zh-CN'
+      alternatePath = pageData.relativePath.replace(/^en\//, 'zh-CN/')
+    } else if (pageData.relativePath.startsWith('zh-CN/')) {
+      currentLang = 'zh-CN'
+      alternateLang = 'en'
+      alternatePath = pageData.relativePath.replace(/^zh-CN\//, 'en/')
+    }
+
+    if (alternatePath) {
+      const altCleanPath = alternatePath.replace(/((^|\/)index)?\.md$/, '$2')
+      const altUrl = `${hostname}/${altCleanPath}`.replace(/\/$/, '')
+      
+      head.push(['link', { rel: 'alternate', hreflang: alternateLang, href: altUrl }])
+      head.push(['link', { rel: 'alternate', hreflang: currentLang, href: canonicalUrl }])
+    }
+
+    // 3. Open Graph / Social Metadata
+    head.push(['meta', { property: 'og:site_name', content: 'Data Diode Connector' }])
+    head.push(['meta', { property: 'og:title', content: pageData.frontmatter.title ? `${pageData.frontmatter.title} | Data Diode Connector` : 'Data Diode Connector' }])
+    head.push(['meta', { property: 'og:description', content: pageData.frontmatter.description || "Secure, high-performance, unidirectional data transfer suite powered by Rust." }])
+    head.push(['meta', { property: 'og:url', content: canonicalUrl }])
+    
+    const ogImage = pageData.frontmatter.image || '/og-image.png' 
+    if (ogImage) {
+        head.push(['meta', { property: 'og:image', content: `${hostname}${ogImage}` }])
+        head.push(['meta', { name: 'twitter:image', content: `${hostname}${ogImage}` }])
+    }
+
+    // 4. Twitter Card
+    head.push(['meta', { name: 'twitter:card', content: 'summary_large_image' }])
+    head.push(['meta', { name: 'twitter:title', content: pageData.frontmatter.title || 'Data Diode Connector' }])
+    head.push(['meta', { name: 'twitter:description', content: pageData.frontmatter.description || "Secure, high-performance, unidirectional data transfer suite powered by Rust." }])
+
+    // 5. JSON-LD Structured Data
+    const jsonLd = {
+      "@context": "https://schema.org",
+      "@type": "TechArticle",
+      "headline": pageData.frontmatter.title || "Data Diode Connector Documentation",
+      "image": [`${hostname}${ogImage}`],
+      "datePublished": "2025-11-28T08:00:00+08:00", // Ideally fetch from git creation time if possible, or omit
+      "dateModified": pageData.lastUpdated ? new Date(pageData.lastUpdated).toISOString() : new Date().toISOString(),
+      "author": {
+        "@type": "Person",
+        "name": "ffutop",
+        "url": hostname
+      }
+    }
+    head.push(['script', { type: 'application/ld+json' }, JSON.stringify(jsonLd)])
+
+    return head
+  },
 
   // Default Theme Config (Shared)
   themeConfig: {
@@ -162,5 +249,9 @@ export default withMermaid(defineConfig({
   },
   markdown: {
     math: true,
+  },
+  sitemap: {
+    hostname: 'https://data-diode-connector.ffutop.com',
+    lastmodDateOnly: false,
   },
 }));

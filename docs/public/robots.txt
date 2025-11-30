@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://data-diode-connector.ffutop.com/sitemap.xml
+
+Host: data-diode-connector.ffutop.com
