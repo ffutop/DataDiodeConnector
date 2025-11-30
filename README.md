@@ -1,116 +1,136 @@
-## The Open Source Data Diode
+# Data Diode Connector (DDC)
 
-## 1. Introduction 'Open Source Data Diode'
-This repository is home to the Open Source Data Diode.
+![Docker Image Version](https://img.shields.io/docker/v/ffutop/ddc-transport-udp-receive)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/data-diode-connector-ingress)](https://artifacthub.io/packages/helm/ffutop/data-diode-connector-ingress)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/data-diode-connector-egress)](https://artifacthub.io/packages/helm/ffutop/data-diode-connector-egress)
 
-The invention of a data diode is not new. But the fact that the Open-Source Data Diode is offered low-end, low-cost, and as the name suggests, open source is something new. The Open Source Data Diode (OSDD) is a mid-tier, low-cost, open source data diode aimed at use by public and private parties in the Netherlands. 
+**Cloud-native, high-performance data transfer suite for unidirectional network environments.**
 
-The currently available data diodes are mainly used for highly classified domains, where a high degree of information security applies. The high demands in highly classified domains make them relatively complex and expensive. However, the OSDD is based on a simple but reliable design and use at low costs, which makes the product more accessible and affordable for a multitude of companies, (semi) governments and individuals. In addition, the basic principle is that the OSDD can be used flexibly.
+**🚀 Official Site:** [data-diode-connector.ffutop.com](https://data-diode-connector.ffutop.com/en/?utm_source=dockerhub&utm_medium=readme&utm_campaign=main_en)
 
-The OSDD consists of a hardware device, the physical diode, and a software suite in which additional functionality can be programmed for specific use cases. The codebase contains both a prototype version for a proxy framework for data diodes and the hardware schematics of the diode itself. Currently, the OSDD contains a proxy implementation for the Kafka protocol and it also transports metrics (statsd format) through the diode.
+## 📖 Introduction
 
-All code have been written primarily for Linux systems. 
+**Data Diode Connector** is an engineering-grade software solution designed to bridge modern applications (like **Kafka**, **UDP**, **TCP**) with physical **Data Diodes** (unidirectional network devices / optical diodes).
 
-The OSDD demonstrator was developed in a collaboration between the Cyber Innovation Hub, The Hague Security Delta and Technolution.
+Built entirely in **Rust**, **Data Diode Connector** ensures memory safety, ultra-low latency, and high throughput (supporting 10Gbps+ line rate). It is the ideal choice for **Critical Infrastructure**, **Industrial Control Systems (OT/ICS) Security**, and **Defense** environments that mandate strict physical/logical isolation.
 
-![image](https://user-images.githubusercontent.com/104058636/187169728-0fa5b9c2-c291-43c4-81c8-09dcc3c0a1d8.png)
+### Why Data Diode Connector?
 
+In a unidirectional network, the receiver cannot send "ACK" confirmations or flow control signals back to the sender. This prevents standard TCP connections from being established, while direct UDP traffic is prone to "silent packet loss" due to buffer overflows.
 
-## 2. Policy
+Data Diode Connector solves this challenge perfectly through the following mechanisms:
+- **Application Layer Flow Control:** Proactively limits the sending rate to prevent physical diode buffer overflows.
+- **Sequence Tracking:** Real-time detection and reporting of packet loss, ensuring visibility of data integrity.
+- **Protocol Normalization:** Converts complex stateful protocols (like Kafka, MQTT) into streaming formats adapted for unidirectional transmission.
 
-### Standard for Public Code
-We adhere to the Standard for Public Code as defined by the Foundation for Public Code. We ask our contributors to endorse this standard as well.
-For the full information, please check https://standard.publiccode.net/
+## ✨ Key Features
 
-It is the intent of the OSDD-development community to develop the codebase collaboratively.
-Adhering to the criteria set forth in the Standard for Public Code gives us confidence in the process.
-Therefore, Technolution, Sintecs, Compumatica, Fox-IT, Scalys and further partnering organizations are committed to maintaining and developing the OSDD at a level of quality that meets the Standard for Public Code.
+- **🦀 Rust-Driven Extreme Performance:** Utilizes lock-free ring buffers (`BipBuffer`) and zero-copy mechanisms to saturate 10Gbps bandwidth with minimal CPU usage.
+- **🔒 Physical Isolation Ready:** Designed specifically for rigorous environments with **zero** return connections.
+- **🛡️ Deep Security Defense:** Built-in WAF-grade **Filter Chain** supporting regex, keywords, and Schema validation, ensuring data is strictly scrubbed before leaving the secure zone.
+- **⚡ Kafka Cross-Network Mirroring:** Natively supports mirroring Kafka Topics across unidirectional links without heavy components like MirrorMaker.
+- **☁️ Cloud-Native Architecture:** Provides production-ready **Kubernetes (Helm)** and **Docker Compose** support. Integrated Prometheus metrics and structured logging.
+- **📈 Full-Link Observability:** Real-time monitoring of packet loss rates (`packet_loss`) and throughput via StatsD/Prometheus.
 
-![image](https://user-images.githubusercontent.com/104058636/187181926-5433c767-6fa0-4e04-b89f-4fb818e9a4e0.png)
+## 🏗️ Architecture Design
 
-A video introduction to Standard for Public Code from Creative Commons Global Summit 2020 (4:12) on YouTube.
+DDC consists of two decoupled components that strictly follow a 1:1 pairing relationship:
 
-### Guidelines for developers
-To be added
-
-
-### About the Cyber Innovation Hub
-The Cyber Innovation Hub, established in 2019 from the Ministry of Defence, ensures that departments, research institutions and companies work together on joint security issues within the field of cyber (security). The aim is to strengthen cyber knowledge and skills in the Netherlands, facilitate innovations and experiments and build an ecosystem of cyber experts, innovators and other partners to reduce cyber threats.
-
-Securing networks is an important point of attention within Cyber. Gaining access to networks by intercepting or modifying network traffic is the basis for many security breeches. One of the problems with securing networks can be traced back to the organization of the current IP-based network traffic. This is bi-directional (2 way traffic), because guaranteed delivery is requested in the protocol. There are various devices or software for securing networks, such as Firewalls, Intruder Detection Systems, Intruder Prevention Systems and data diodes. They all have specific functionality that increases network security. 
-
-A data diode is a device that physically enforces uni-directional (one-way) network traffic. This creates an additional layer of security, as the diode enforces that traffic can only flow from network A to network B, thus protecting network A. For more information about data diodes, see [this document](https://github.com/CyberInnovationHub-NLD/OpenSourceDataDiode-OSDD-/blob/master/General_docs/About%20the%20OSDD/Background%20Information%20about%20the%20OSDD.docx).
-
-The Cyber Innovation Hub is included in the Defence Cyber Strategy ([Defensie Cyber Strategie](https://www.defensie.nl/binaries/defensie/documenten/publicaties/2018/11/12/defensie-cyber-strategie-2018/web_Brochure+Defensie+Cyber+Strategie.pdf)) 2018 Dutch Cyber Security Agenda ([Nederlandse Cybersecurity Agenda (NCSA)](https://www.ncsc.nl/onderwerpen/nederlandse-cyber-security-agenda)) 2020. 
-
-## 3. Instructions
-
-### Build
-Make sure a recent Rust compiler (recently tested with 1.45) and Docker are installed.
-
-You also need MUSL support for RUST: 
-```sh
-rustup target add x86_64-unknown-linux-musl
+```mermaid
+%%{init: { "themeVariables": { "clusterBkg": "#ffffff", "clusterBorder": "#424242" }}}%%
+graph LR
+    A["Source Application"] --> B["Ingress Proxy"]
+    B --> C(("Data Diode"))
+    C --> D["Egress Proxy"] --> E["Target Application"]
+    classDef darkStyle fill:#ffffff,stroke:#424242,color:#424242,stroke-width:2px
+    class A,B,C,D,E darkStyle;
 ```
 
-Run the build script in the scripts folder:
-```sh
-cd scripts
-./create_tars.sh
+*   **Ingress Proxy:** Responsible for data ingestion, security filtering, sequence number addition, and sending rate control.
+*   **Egress Proxy:** Receives UDP streams, performs reordering, packet loss detection, data reassembly, and forwarding to the target system.
+
+🔗 [View Full Architecture and Deployment Topologies](https://data-diode-connector.ffutop.com/en/software_architecture.html?utm_source=dockerhub&utm_medium=readme&utm_campaign=architecture_en)
+
+## 🚀 Quick Start
+
+### Docker Compose (Kafka Mirroring Example)
+
+The following example demonstrates how to set up a unidirectional link to mirror a Kafka Topic.
+
+```yaml
+services:
+  # 1. Ingress Proxy (Deployed in Source Network/High Security Zone)
+  ddc-ingress:
+    image: ffutop/ddc-ingress:latest
+    environment:
+      # Protocol Configuration
+      - DDC_PROTOCOL_HANDLER_TYPE=kafka
+      - DDC_PROTOCOL_HANDLER_KAFKA_HOST_KAFKA_SERVER=source-kafka:9092
+      - DDC_PROTOCOL_HANDLER_KAFKA_TOPIC_NAME=critical-events
+      # Transport Configuration
+      - DDC_TRANSPORT_UDP_SEND_RECEIVER_ADDRESS=10.0.0.5 # Egress IP
+      - DDC_TRANSPORT_UDP_SEND_RECEIVER_PORT=1234
+      - DDC_TRANSPORT_UDP_SEND_SEND_DELAY_MS=1 # Flow Control (1ms interval per packet)
+
+  # 2. Egress Proxy (Deployed in Destination Network/Low Security Zone)
+  ddc-egress:
+    image: ffutop/ddc-egress:latest
+    ports:
+      - "1234:1234/udp"
+    environment:
+      # Transport Configuration
+      - DDC_TRANSPORT_UDP_RECEIVE_RECEIVER_PORT=1234
+      # Protocol Configuration
+      - DDC_PROTOCOL_HANDLER_TYPE=kafka
+      - DDC_PROTOCOL_HANDLER_KAFKA_HOST_KAFKA_SERVER=target-kafka:9092
+      - DDC_PROTOCOL_HANDLER_KAFKA_OUT_REPLACEMENT=mirrored-events
 ```
 
-This scripts builds the repository in release and in MUSL release, it create docker images and create two tars. One for the ingress proxy and one for the egress proxy.
+### Kubernetes (Helm)
 
-Copy the tars to your target systems, unpack them and install the *osdd* service. Match the configuration file to your system and start the osdd service.
+We provide production-ready Helm Charts via ArtifactHub.
 
-### Result
-This build results in two tar files, one for the ingress proxy, one for the egress proxy. Both tar files contain the OSDD service (executable and definition) and a bunch of exported docker containers. 
+```bash
+# Add repository
+helm repo add ffutop https://ffutop.github.io/helm-charts
+helm repo update
 
-### Installation
-There is a brief installation document available:
-[general_docs/installation.md](general_docs/installation.md)
+# Install Ingress Proxy (Source Side)
+helm install ddc-ingress ffutop/data-diode-connector-ingress \
+  --set protocolHandler.type=kafka \
+  --set transportUdpSend.receiverAddress=10.0.0.5
 
-### Configuration
-There is a brief configuration document available:
-[general_docs/config_file_explanation.md](general_docs/config_file_explanation.md)
+# Install Egress Proxy (Destination Side)
+helm install ddc-egress ffutop/data-diode-connector-egress \
+  --set protocolHandler.type=kafka
+```
 
-### Design choices
-There is a brief design choices document available:
-[general_docs/design_choices.md](general_docs/design_choices.md)
+🔗 [Detailed Configuration Reference](https://data-diode-connector.ffutop.com/en/configuration_reference.html?utm_source=dockerhub&utm_medium=readme&utm_campaign=helm_en)
 
-### Support and/or reporting security issues
-In case you need support with the set-up of the OSDD, or if you wish to privately report (security) issues, please contact the maintainer Kor Gerritma (kj.gerritsma@mindef.nl). When someone lets the maintainer know privately about a security vulnerability, the maintainer develops a fix, validates it, and notifies the developers of the project.
+## 📚 Documentation Resources
 
-### Report bugs using Github's [issues](https://github.com/CyberInnovationHub-NLD/OpenSourceDataDiode/issues)
-We use GitHub issues to track public bugs. Report a bug by opening a new issue.
+- **[Installation Guide](https://data-diode-connector.ffutop.com/en/download.html)** - Kubernetes, Docker, and Bare-metal deployment.
+- **[Kernel Tuning Guide](https://data-diode-connector.ffutop.com/en/kernel_tuning.html)** - Optimizing Linux kernel to achieve 10 Gbps throughput.
+- **[Security Model](https://data-diode-connector.ffutop.com/en/security_model.html)** - Threat analysis and memory safety mechanisms.
+- **[Protocol Specification](https://data-diode-connector.ffutop.com/en/protocol.html)** - Low-level packet structure details.
 
+## 🏢 Commercial & Support
 
-## 4. Roadmap
-The roadmap shows what we are working on and some of the things we have done. The roadmap is only a small guide. It does not cover everything we do, and some things may change. You can contact Kor Gerritsma (kj.gerritsma@mindef.nl) if you have any questions about the roadmap or suggestions for new features.
+The Data Diode Connector Community Edition is completely free and open source (Apache 2.0). For mission-critical scenarios, we offer a more powerful **Enterprise Edition**.
 
-### Things we're working on
-Now
-- Updating the OSDD-repository to meet the Standard of Public Code (and make it as accessible as possible for contributors)
-- Engaging with several developing parties to further work on the source code: next up is a workshop to further elaborate on the roadmap and governance file
-- Make the OSDD-repository open for everyone to contribute
+| Features | Community Edition | Enterprise Edition |
+| :--- | :---: | :---: |
+| **Core Engine (Rust)** | ✅ | ✅ |
+| **10Gbps Line Rate Support** | ✅ | ✅ |
+| **Kafka / UDP Support** | ✅ | ✅ |
+| **Deep Packet Inspection (DPI)** | ❌ | ✅ |
+| **Schema Validation (Avro/JSON)** | ❌ | ✅ |
+| **LTS Binaries & SLA Support** | ❌ | ✅ |
 
-Next
-- Organise a workshop with all stakeholders involved (and the Foundation for Public Code) to form the first use case
-- Participate at a hackaton to further develop the source code of the OSDD
+[Contact Sales](mailto:sales@datadiodeconnector.com) or [View Pricing](https://data-diode-connector.ffutop.com/en/commercial.html?utm_source=dockerhub&utm_medium=readme&utm_campaign=commercial_en).
 
+---
 
-## 5. Contributing, authors and acknowledgement
-Contributions are what make the open source community such an amazing place to learn, inspire, and create. Any contributions you make are greatly appreciated. 
-
-Get started by reading our [contributors guide](https://github.com/CyberInnovationHub-NLD/OpenSourceDataDiode/blob/master/contributors_guide.md).
-
-Please note that this project is released with a [code of conduct](https://github.com/CyberInnovationHub-NLD/OpenSourceDataDiode/blob/master/code_of_conduct.md). By participating in this project you agree to abide by its terms. 
-
-We’re using Discussions as a place to connect with other members of our community. If you have any questions, great ideas, and/or want to engage with other community members, please leave a message at [Discussions](https://github.com/CyberInnovationHub-NLD/OpenSourceDataDiode/discussions)
-
-
-## 6. License Information
-
-The license is Apache 2.
-
-Branches are free to distribute and publish on discretion of the repective branche owner/moderator.
+<p align="center">
+  Copyright © 2025 ffutop.
+</p>

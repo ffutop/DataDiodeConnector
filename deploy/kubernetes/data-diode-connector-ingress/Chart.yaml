@@ -1,6 +1,34 @@
 apiVersion: v2
 name: data-diode-connector-ingress
-description: A Helm chart for Kubernetes to deploy the Data Diode Connector Ingress
+description: A Helm chart for Kubernetes to deploy the Data Diode Connector Ingress. Designed for secure, unidirectional data transfer in high-security environments.
 type: application
 version: 1.0.0
 appVersion: "1.0.0"
+keywords:
+  - data-diode
+  - security
+  - cybersecurity
+  - air-gap
+  - network-isolation
+  - rust
+  - udp
+  - kafka
+  - ot-security
+maintainers:
+  - name: "ffutop"
+    email: "lijinling.me@gmail.com"
+home: https://data-diode-connector.ffutop.com
+sources:
+  - https://github.com/ffutop/DataDiodeConnector
+  - https://data-diode-connector.ffutop.com/docs
+annotations:
+  artifacthub.io/category: security
+  artifacthub.io/links: |
+    - name: Official Site
+      url: https://data-diode-connector.ffutop.com?utm_source=artifacthub&utm_medium=link&utm_campaign=ingress
+    - name: Documentation
+      url: https://data-diode-connector.ffutop.com/en/index.html?utm_source=artifacthub&utm_medium=link&utm_campaign=ingress
+    - name: GitHub Repository
+      url: https://github.com/ffutop/DataDiodeConnector
+    - name: Issue Tracker
+      url: https://github.com/ffutop/DataDiodeConnector/issues

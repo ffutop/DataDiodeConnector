@@ -61,6 +61,235 @@ spec:
             - name: config-volume
               mountPath: /fluent-bit/etc/fluent-bit.yaml
               subPath: fluent-bit.yaml
+
+        {{- /* Context to track the current socket path through the chain */ -}}
+        {{- $socketContext := dict "current" "/shared/socket_ph_out.sock" -}}
+
+        {{- /* 1. Protocol Handler (Ingress) Configuration */ -}}
+        {{- if eq .Values.protocolHandler.type "kafka" }}
+        - name: ph-kafka-ingress
+          securityContext:
+            {{- toYaml .Values.protocolHandler.kafka.securityContext | nindent 12 }}
+          image: "{{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.phKafkaIngress.repository }}:{{ .Values.images.phKafkaIngress.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.images.phKafkaIngress.pullPolicy }}
+          env:
+          - name: RUST_BACKTRACE
+            value: "1"
+          command: ["/ph_kafka_ingress"]
+          args:
+          - "--bip_buffer_element_count"
+          - "{{ .Values.protocolHandler.kafka.bipBufferElementCount }}"
+          - "--from_host_sys_log"
+          - "{{ .Values.protocolHandler.kafka.fromHostSysLog }}"
+          - "--from_port_sys_log"
+          - "{{ .Values.protocolHandler.kafka.fromPortSysLog }}"
+          - "--to_host_sys_log"
+          - "{{ .Values.protocolHandler.kafka.toHostSysLog }}"
+          - "--to_port_sys_log"
+          - "{{ .Values.protocolHandler.kafka.toPortSysLog }}"
+          - "--handler_name"
+          - "{{ .Values.protocolHandler.kafka.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.protocolHandler.kafka.logLevel }}"
+          - "--stats_server_address"
+          - "{{ .Values.protocolHandler.kafka.statsServerAddress }}"
+          - "--stats_server_port"
+          - "{{ .Values.protocolHandler.kafka.statsServerPort }}"
+          - "--host_kafka_server"
+          - "{{ .Values.protocolHandler.kafka.hostKafkaServer }}"
+          - "--port_kafka_server"
+          - "{{ .Values.protocolHandler.kafka.portKafkaServer }}"
+          - "--topic_name"
+          - "{{ .Values.protocolHandler.kafka.topicName }}"
+          - "--max_bytes_per_partition"
+          - "{{ .Values.protocolHandler.kafka.maxBytesPerPartition | int64 }}"
+          - "--socket_path"
+          - "{{ pluck "current" $socketContext | first }}"
+          startupProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_ingress || exit 1"
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_ingress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_kafka_ingress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+          - name: shared-volume
+            mountPath: /shared
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        {{- else if eq .Values.protocolHandler.type "udp" }}
+        - name: ph-udp-ingress
+          securityContext:
+            {{- toYaml .Values.protocolHandler.udp.securityContext | nindent 12 }}
+          image: "{{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.phUdpIngress.repository }}:{{ .Values.images.phUdpIngress.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: {{ .Values.images.phUdpIngress.pullPolicy }}
+          env:
+          - name: RUST_BACKTRACE
+            value: "1"
+          command: ["/ph_udp_ingress"]
+          args:
+          - "--bip_buffer_element_count"
+          - "{{ .Values.protocolHandler.udp.bipBufferElementCount }}"
+          - "--listening_port"
+          - "{{ .Values.protocolHandler.udp.listeningPort }}"
+          - "--from_host_sys_log"
+          - "{{ .Values.protocolHandler.udp.fromHostSysLog }}"
+          - "--from_port_sys_log"
+          - "{{ .Values.protocolHandler.udp.fromPortSysLog }}"
+          - "--to_host_sys_log"
+          - "{{ .Values.protocolHandler.udp.toHostSysLog }}"
+          - "--to_port_sys_log"
+          - "{{ .Values.protocolHandler.udp.toPortSysLog }}"
+          - "--handler_name"
+          - "{{ .Values.protocolHandler.udp.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.protocolHandler.udp.logLevel }}"
+          - "--stats_server_address"
+          - "{{ .Values.protocolHandler.udp.statsServerAddress }}"
+          - "--stats_server_port"
+          - "{{ .Values.protocolHandler.udp.statsServerPort }}"
+          - "--socket_path"
+          - "{{ pluck "current" $socketContext | first }}"
+          startupProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_udp_ingress || exit 1"
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_udp_ingress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep ph_udp_ingress || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+          - name: shared-volume
+            mountPath: /shared
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+        {{- end }}
+
+        {{- /* 2. Filter Chain Configuration */ -}}
+        {{- range $index, $filter := .Values.filters }}
+        {{- if $filter.enabled }}
+        {{- $nextSocket := printf "/shared/socket_filter_%d.sock" $index }}
+        - name: filter-{{ $filter.name }}
+          securityContext:
+            {{- toYaml ($filter.securityContext | default dict) | nindent 12 }}
+          image: "{{ $.Values.images.registry | default "" }}{{ if not ($.Values.images.registry | empty) }}/{{ end }}{{ $filter.repository | default $.Values.images.filter.repository }}:{{ $filter.tag | default $.Values.images.filter.tag }}"
+          imagePullPolicy: {{ $.Values.images.filter.pullPolicy }}
+          command: ["/filter"]
+          args:
+          - "--socket_path_in"
+          - "{{ pluck "current" $socketContext | first }}"
+          - "--socket_path_out"
+          - "{{ $nextSocket }}"
+          - "--word_to_filter"
+          - "{{ $filter.wordToFilter }}"
+          - "--bip_buffer_element_count"
+          - "{{ $filter.bipBufferElementCount }}"
+          - "--max_message_size"
+          - "{{ $filter.maxMessageSize }}"
+          - "--from_host_sys_log"
+          - "{{ $filter.fromHostSysLog }}"
+          - "--from_port_sys_log"
+          - "{{ $filter.fromPortSysLog }}"
+          - "--to_host_sys_log"
+          - "{{ $filter.toHostSysLog }}"
+          - "--to_port_sys_log"
+          - "{{ $filter.toPortSysLog }}"
+          - "--handler_name"
+          - "{{ $filter.handlerName }}"
+          - "--log_level"
+          - "{{ $filter.logLevel }}"
+          - "--stats_server_address"
+          - "{{ $filter.hostStatsServer }}"
+          - "--stats_server_port"
+          - "{{ $filter.portStatsServer }}"
+          startupProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep filter || exit 1"
+            initialDelaySeconds: 0
+            periodSeconds: 1
+            timeoutSeconds: 1
+            failureThreshold: 10
+          livenessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep filter || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep filter || exit 1"
+            initialDelaySeconds: 10
+            periodSeconds: 5
+            timeoutSeconds: 1
+            failureThreshold: 3
+          volumeMounts:
+          - name: shared-volume
+            mountPath: /shared
+          resources:
+            {{- toYaml $.Values.resources | nindent 12 }}
+        
+        {{- /* Update current socket to the one we just created as output */ -}}
+        {{- $_ := set $socketContext "current" $nextSocket -}}
+        {{- end }}
+        {{- end }}
+        {{ "" }}
+
+        {{- /* 3. Transport UDP Send (Ingress tail) Configuration */ -}}
         - name: transport-udp-send
           securityContext:
             {{- toYaml .Values.transportUdpSend.securityContext | nindent 12 }}
@@ -100,7 +329,7 @@ spec:
           - "--send_delay_ms"
           - "{{ .Values.transportUdpSend.sendDelayMs }}"
           - "--socket_path"
-          - "{{ .Values.transportUdpSend.socketPath }}"
+          - "{{ pluck "current" $socketContext | first }}"
           startupProbe:
             exec:
               command:
@@ -127,79 +356,6 @@ spec:
               - "/bin/sh"
               - "-c"
               - "pgrep transport_udp_send || exit 1"
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            timeoutSeconds: 1
-            failureThreshold: 3
-          volumeMounts:
-          - name: shared-volume
-            mountPath: /shared
-          resources:
-            {{- toYaml .Values.resources | nindent 12 }}
-        - name: ph-kafka-ingress
-          securityContext:
-            {{- toYaml .Values.phKafkaIngress.securityContext | nindent 12 }}
-          image: "{{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.phKafkaIngress.repository }}:{{ .Values.images.phKafkaIngress.tag | default .Chart.AppVersion }}"
-          imagePullPolicy: {{ .Values.images.phKafkaIngress.pullPolicy }}
-          env:
-          - name: RUST_BACKTRACE
-            value: "1"
-          command: ["/ph_kafka_ingress"]
-          args:
-          - "--bip_buffer_element_count"
-          - "{{ .Values.phKafkaIngress.bipBufferElementCount }}"
-          - "--from_host_sys_log"
-          - "{{ .Values.phKafkaIngress.fromHostSysLog }}"
-          - "--from_port_sys_log"
-          - "{{ .Values.phKafkaIngress.fromPortSysLog }}"
-          - "--to_host_sys_log"
-          - "{{ .Values.phKafkaIngress.toHostSysLog }}"
-          - "--to_port_sys_log"
-          - "{{ .Values.phKafkaIngress.toPortSysLog }}"
-          - "--handler_name"
-          - "{{ .Values.phKafkaIngress.handlerName }}"
-          - "--log_level"
-          - "{{ .Values.phKafkaIngress.logLevel }}"
-          - "--stats_server_address"
-          - "{{ .Values.phKafkaIngress.statsServerAddress }}"
-          - "--stats_server_port"
-          - "{{ .Values.phKafkaIngress.statsServerPort }}"
-          - "--host_kafka_server"
-          - "{{ .Values.phKafkaIngress.hostKafkaServer }}"
-          - "--port_kafka_server"
-          - "{{ .Values.phKafkaIngress.portKafkaServer }}"
-          - "--topic_name"
-          - "{{ .Values.phKafkaIngress.topicName }}"
-          - "--max_bytes_per_partition"
-          - "{{ .Values.phKafkaIngress.maxBytesPerPartition }}"
-          - "--socket_path"
-          - "{{ .Values.phKafkaIngress.socketPath }}"
-          startupProbe:
-            exec:
-              command:
-              - "/bin/sh"
-              - "-c"
-              - "pgrep ph_kafka_ingress || exit 1"
-            initialDelaySeconds: 0
-            periodSeconds: 1
-            timeoutSeconds: 1
-            failureThreshold: 10
-          livenessProbe:
-            exec:
-              command:
-              - "/bin/sh"
-              - "-c"
-              - "pgrep ph_kafka_ingress || exit 1"
-            initialDelaySeconds: 10
-            periodSeconds: 5
-            timeoutSeconds: 1
-            failureThreshold: 3
-          readinessProbe:
-            exec:
-              command:
-              - "/bin/sh"
-              - "-c"
-              - "pgrep ph_kafka_ingress || exit 1"
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 1

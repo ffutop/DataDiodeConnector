@@ -1,0 +1,15 @@
+{
+  "scripts": {
+    "docs:dev": "vitepress dev",
+    "docs:build": "vitepress build",
+    "docs:preview": "vitepress preview"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.22",
+    "markdown-it-mathjax3": "^4.3.2",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.17",
+    "vitepress": "^2.0.0-alpha.15",
+    "vitepress-plugin-mermaid": "^2.0.17"
+  }
+}
