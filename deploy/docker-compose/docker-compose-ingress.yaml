@@ -1,0 +1,112 @@
+version: '3.8'
+
+services:
+  # Log aggregation service
+  vector:
+    image: timberio/vector:0.51.1-alpine
+    command: ["--config", "/etc/vector/vector.yaml"]
+    volumes:
+      - ./vector.yaml:/etc/vector/vector.yaml:ro
+    ports:
+      - "8082:8082/udp" # Syslog (optional exposure)
+      - "8125:8125/udp" # Statsd (optional exposure)
+    networks:
+      - ddc-ingress-net
+  
+  # Reads data from Kafka and writes to Socket
+  # Replace this service with ph-udp-ingress image and corresponding parameters if input source is UDP
+  ph-kafka-ingress:
+    image: ffutop/ddc-ph-kafka-ingress:latest
+    restart: always
+    depends_on:
+      - vector
+    volumes:
+      - shared-socket:/shared
+    networks:
+      - ddc-ingress-net
+    environment:
+      - RUST_BACKTRACE=1
+    command:
+      - "/ph_kafka_ingress"
+      - "--bip_buffer_element_count"
+      - "2"
+      - "--from_host_sys_log"
+      - "0.0.0.0"
+      - "--from_port_sys_log"
+      - "8127"
+      - "--to_host_sys_log"
+      - "vector"
+      - "--to_port_sys_log"
+      - "8082"
+      - "--stats_server_address"
+      - "vector"
+      - "--stats_server_port"
+      - "8125"
+      - "--handler_name"
+      - "ph_kafka_ingress"
+      - "--log_level"
+      - "Warn"
+      - "--host_kafka_server"
+      - "kafka:9092" # Modify to your actual Kafka address
+      - "--port_kafka_server"
+      - "9092"
+      - "--topic_name"
+      - "TestTopic"
+      - "--max_bytes_per_partition"
+      - "1000000"
+      - "--socket_path"
+      - "/shared/socket_ph_out.sock"
+
+  # Reads data from Socket and sends via UDP
+  transport-udp-send:
+    image: ffutop/ddc-transport-udp-send:latest
+    restart: always
+    depends_on:
+      - vector
+      - ph-kafka-ingress
+    volumes:
+      - shared-socket:/shared
+    networks:
+      - ddc-ingress-net
+    cap_add:
+      - SYS_NICE
+    environment:
+      - RUST_BACKTRACE=1
+    command:
+      - "/transport_udp_send"
+      - "--bip_buffer_element_count"
+      - "10"
+      - "--from_host_sys_log"
+      - "0.0.0.0"
+      - "--from_port_sys_log"
+      - "8343"
+      - "--to_host_sys_log"
+      - "vector"
+      - "--to_port_sys_log"
+      - "8082"
+      - "--stats_server_address"
+      - "vector"
+      - "--stats_server_port"
+      - "8125"
+      - "--handler_name"
+      - "transport_udp_send"
+      - "--log_level"
+      - "Warn"
+      - "--receiver_address"
+      - "127.0.0.1" # Modify to your actual target UDP address (e.g., Diode hardware address)
+      - "--receiver_port"
+      - "1234"
+      - "--sender_address"
+      - "0.0.0.0"
+      - "--sender_port"
+      - "1234"
+      - "--send_delay_ms"
+      - "5"
+      - "--socket_path"
+      - "/shared/socket_ph_out.sock"
+
+volumes:
+  shared-socket:
+
+networks:
+  ddc-ingress-net:

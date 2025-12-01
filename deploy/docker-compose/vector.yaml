@@ -1,0 +1,25 @@
+sources:
+  syslog:
+    type: syslog
+    address: 0.0.0.0:8082
+    mode: udp
+  statsd:
+    type: statsd
+    address: 0.0.0.0:8125
+    mode: udp
+
+sinks:
+  console:
+    type: console
+    encoding:
+      codec: csv
+      csv:
+        fields: [timestamp, appname, procid, severity, message]
+    inputs:
+      - syslog
+  console-statsd:
+    type: console
+    encoding:
+      codec: json
+    inputs:
+      - statsd

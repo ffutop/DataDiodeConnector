@@ -1,0 +1,104 @@
+version: '3.8'
+
+services:
+  # Log aggregation service
+  vector:
+    image: timberio/vector:0.51.1-alpine
+    command: ["--config", "/etc/vector/vector.yaml"]
+    volumes:
+      - ./vector.yaml:/etc/vector/vector.yaml:ro
+    ports:
+      - "8082:8082/udp" # Syslog (optional exposure)
+      - "8125:8125/udp" # Statsd (optional exposure)
+    networks:
+      - ddc-egress-net
+
+  # Receives UDP data and writes to Socket
+  transport-udp-receive:
+    image: ffutop/ddc-transport-udp-receive:latest
+    restart: always
+    depends_on:
+      - vector
+    volumes:
+      - shared-socket:/shared
+    networks:
+      - ddc-egress-net
+    ports:
+      - "1234:1234/udp" # Expose receiver port
+    # Enable SYS_NICE capability for improved performance (optional)
+    cap_add:
+      - SYS_NICE
+    command:
+      - "/transport_udp_receive"
+      - "--bip_buffer_element_count"
+      - "10"
+      - "--from_host_sys_log"
+      - "0.0.0.0"
+      - "--from_port_sys_log"
+      - "8342"
+      - "vector" # Point to vector service
+      - "--to_port_sys_log"
+      - "8082"
+      - "--stats_server_address"
+      - "vector" # Point to vector service
+      - "--stats_server_port"
+      - "8125"
+      - "--handler_name"
+      - "transport-udp-receive"
+      - "--log_level"
+      - "Info"
+      - "--receiver_address"
+      - "0.0.0.0"
+      - "--receiver_port"
+      - "1234"
+      - "--socket_path"
+      - "/shared/socket_transport_out.sock"
+
+  # Reads data from Socket and sends to Kafka
+  # Replace this service with ph-udp-egress image and corresponding parameters if UDP Egress is needed
+  ph-kafka-egress:
+    image: ffutop/ddc-ph-kafka-egress:latest
+    restart: always
+    depends_on:
+      - vector
+      - transport-udp-receive
+    volumes:
+      - shared-socket:/shared
+    networks:
+      - ddc-egress-net
+    command:
+      - "/ph_kafka_egress"
+      - "--bip_buffer_element_count"
+      - "10"
+      - "--from_host_sys_log"
+      - "0.0.0.0"
+      - "--from_port_sys_log"
+      - "8129"
+      - "--to_host_sys_log"
+      - "vector"
+      - "--to_port_sys_log"
+      - "8082"
+      - "--stats_server_address"
+      - "vector"
+      - "--stats_server_port"
+      - "8125"
+      - "--handler_name"
+      - "ph-kafka-egress"
+      - "--log_level"
+      - "Info"
+      - "--host_kafka_server"
+      - "kafka:9092" # Modify to your actual Kafka address
+      - "--port_kafka_server"
+      - "9092"
+      - "--in_replacement"
+      - "TestTopic"
+      - "--out_replacement"
+      - "FinalTestTopic"
+      - "--socket_path"
+      - "/shared/socket_transport_out.sock"
+
+volumes:
+  shared-socket:
+
+networks:
+  ddc-egress-net:
