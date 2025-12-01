@@ -26,32 +26,38 @@ spec:
       securityContext:
         {{- toYaml .Values.podSecurityContext | nindent 8 }}
       containers:
-        - name: fluentbit
-          image: {{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.fluentbit.repository }}:{{ .Values.images.fluentbit.tag | default .Chart.AppVersion }}
-          imagePullPolicy: {{ .Values.images.fluentbit.pullPolicy }}
-          command: ["/fluent-bit/bin/fluent-bit"]
-          args: [ "-c", "/fluent-bit/etc/fluent-bit.yaml" ]
+        - name: vector
+          image: {{ .Values.images.registry | default "" }}{{ if not (.Values.images.registry | empty) }}/{{ end }}{{ .Values.images.vector.repository }}:{{ .Values.images.vector.tag | default .Chart.AppVersion }}
+          imagePullPolicy: {{ .Values.images.vector.pullPolicy }}
+          command: ["vector"]
+          args: ["--config", "/vector.yaml"]
           startupProbe:
-            httpGet:
-              path: /
-              port: 2020
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep vector || exit 1"
             initialDelaySeconds: 0
             periodSeconds: 1
             timeoutSeconds: 1
             failureThreshold: 10
           livenessProbe:
-            httpGet:
-              path: /
-              port: 2020
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep vector || exit 1"
             initialDelaySeconds: 10
             periodSeconds: 5
             timeoutSeconds: 1
             failureThreshold: 3
           readinessProbe:
-            httpGet:
-              path: /
-              port: 2020
-            initialDelaySeconds: 10
+            exec:
+              command:
+              - "/bin/sh"
+              - "-c"
+              - "pgrep vector || exit 1"
+            initialDelaySeconds: 10 
             periodSeconds: 5
             timeoutSeconds: 1
             failureThreshold: 3
@@ -59,8 +65,9 @@ spec:
             {{- toYaml .Values.resources | nindent 12 }}
           volumeMounts:
             - name: config-volume
-              mountPath: /fluent-bit/etc/fluent-bit.yaml
-              subPath: fluent-bit.yaml
+              mountPath: /vector.yaml
+              subPath: vector.yaml
+        {{ "" }}
 
         {{- /* Context to track the current socket path through the chain */ -}}
         {{- $socketContext := dict "current" "/shared/socket_transport_out.sock" -}}
@@ -82,14 +89,14 @@ spec:
           - "{{ .Values.transportUdpReceive.toHostSysLog }}"
           - "--to_port_sys_log"
           - "{{ .Values.transportUdpReceive.toPortSysLog }}"
-          - "--handler_name"
-          - "{{ .Values.transportUdpReceive.handlerName }}"
-          - "--log_level"
-          - "{{ .Values.transportUdpReceive.logLevel }}"
           - "--stats_server_address"
           - "{{ .Values.transportUdpReceive.statsServerAddress }}"
           - "--stats_server_port"
           - "{{ .Values.transportUdpReceive.statsServerPort }}"
+          - "--handler_name"
+          - "{{ .Values.transportUdpReceive.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.transportUdpReceive.logLevel }}"
           - "--receiver_address"
           - "{{ .Values.transportUdpReceive.receiverAddress }}"
           - "--receiver_port"
@@ -142,7 +149,7 @@ spec:
         {{- $nextSocket := printf "/shared/socket_filter_%d.sock" $index }}
         - name: filter-{{ $filter.name }}
           securityContext:
-            {{- toYaml ($filter.securityContext | default dict) | nindent 12 }}
+            {{- toYaml $filter.securityContext | nindent 12 }}
           image: "{{ $.Values.images.registry | default "" }}{{ if not ($.Values.images.registry | empty) }}/{{ end }}{{ $filter.repository | default $.Values.images.filter.repository }}:{{ $filter.tag | default $.Values.images.filter.tag }}"
           imagePullPolicy: {{ $.Values.images.filter.pullPolicy }}
           command: ["/filter"]
@@ -151,12 +158,8 @@ spec:
           - "{{ pluck "current" $socketContext | first }}"
           - "--socket_path_out"
           - "{{ $nextSocket }}"
-          - "--word_to_filter"
-          - "{{ $filter.wordToFilter }}"
           - "--bip_buffer_element_count"
           - "{{ $filter.bipBufferElementCount }}"
-          - "--max_message_size"
-          - "{{ $filter.maxMessageSize }}"
           - "--from_host_sys_log"
           - "{{ $filter.fromHostSysLog }}"
           - "--from_port_sys_log"
@@ -165,14 +168,18 @@ spec:
           - "{{ $filter.toHostSysLog }}"
           - "--to_port_sys_log"
           - "{{ $filter.toPortSysLog }}"
+          - "--stats_server_address"
+          - "{{ $filter.statsServerAddress }}"
+          - "--stats_server_port"
+          - "{{ $filter.statsServerPort }}"
           - "--handler_name"
           - "{{ $filter.handlerName }}"
           - "--log_level"
           - "{{ $filter.logLevel }}"
-          - "--stats_server_address"
-          - "{{ $filter.hostStatsServer }}"
-          - "--stats_server_port"
-          - "{{ $filter.portStatsServer }}"
+          - "--word_to_filter"
+          - "{{ $filter.wordToFilter }}"
+          - "--max_message_size"
+          - "{{ $filter.maxMessageSize | int64 }}"
           startupProbe:
             exec:
               command:
@@ -234,16 +241,14 @@ spec:
           - "{{ .Values.protocolHandler.kafka.toHostSysLog }}"
           - "--to_port_sys_log"
           - "{{ .Values.protocolHandler.kafka.toPortSysLog }}"
-          - "--handler_name"
-          - "{{ .Values.protocolHandler.kafka.handlerName }}"
-          - "--log_level"
-          - "{{ .Values.protocolHandler.kafka.logLevel }}"
           - "--stats_server_address"
           - "{{ .Values.protocolHandler.kafka.statsServerAddress }}"
           - "--stats_server_port"
           - "{{ .Values.protocolHandler.kafka.statsServerPort }}"
-          - "--socket_path"
-          - "{{ pluck "current" $socketContext | first }}"
+          - "--handler_name"
+          - "{{ .Values.protocolHandler.kafka.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.protocolHandler.kafka.logLevel }}"
           - "--host_kafka_server"
           - "{{ .Values.protocolHandler.kafka.hostKafkaServer }}"
           - "--port_kafka_server"
@@ -252,6 +257,8 @@ spec:
           - "{{ .Values.protocolHandler.kafka.inReplacement }}"
           - "--out_replacement"
           - "{{ .Values.protocolHandler.kafka.outReplacement }}"
+          - "--socket_path"
+          - "{{ pluck "current" $socketContext | first }}"
           startupProbe:
             exec:
               command:
@@ -305,20 +312,20 @@ spec:
           - "{{ .Values.protocolHandler.udp.toHostSysLog }}"
           - "--to_port_sys_log"
           - "{{ .Values.protocolHandler.udp.toPortSysLog }}"
-          - "--handler_name"
-          - "{{ .Values.protocolHandler.udp.handlerName }}"
-          - "--log_level"
-          - "{{ .Values.protocolHandler.udp.logLevel }}"
           - "--stats_server_address"
           - "{{ .Values.protocolHandler.udp.statsServerAddress }}"
           - "--stats_server_port"
           - "{{ .Values.protocolHandler.udp.statsServerPort }}"
-          - "--socket_path"
-          - "{{ pluck "current" $socketContext | first }}"
+          - "--handler_name"
+          - "{{ .Values.protocolHandler.udp.handlerName }}"
+          - "--log_level"
+          - "{{ .Values.protocolHandler.udp.logLevel }}"
           - "--udp_receiver_host"
           - "{{ .Values.protocolHandler.udp.udpReceiverHost }}"
           - "--udp_receiver_port"
           - "{{ .Values.protocolHandler.udp.udpReceiverPort }}"
+          - "--socket_path"
+          - "{{ pluck "current" $socketContext | first }}"
           startupProbe:
             exec:
               command:

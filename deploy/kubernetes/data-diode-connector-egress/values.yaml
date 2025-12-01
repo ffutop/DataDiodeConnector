@@ -22,10 +22,10 @@ images:
     repository: ffutop/ddc-filter
     pullPolicy: IfNotPresent
     tag: "latest"
-  fluentbit:
-    repository: fluent/fluent-bit
+  vector:
+    repository: timberio/vector
     pullPolicy: IfNotPresent
-    tag: "4.2.0"
+    tag: "0.51.1-alpine"
 
 # Protocol Handler Configuration
 # Select the output protocol handler type: "kafka" or "udp"
@@ -37,21 +37,21 @@ protocolHandler:
     # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
     bipBufferElementCount: 10
     # -- From syslog server host
-    fromHostSysLog: "0.0.0.0"
+    fromHostSysLog: 0.0.0.0
     # -- From syslog server port
     fromPortSysLog: 8129
     # -- To syslog server host
-    toHostSysLog: "127.0.0.1"
+    toHostSysLog: 127.0.0.1
     # -- To syslog server port
     toPortSysLog: 8082
+    # -- The address of the stats server
+    statsServerAddress: 127.0.0.1
+    # -- The port of the stats server
+    statsServerPort: 8125
     # -- Name of the handler
     handlerName: "ph-kafka-egress"
     # -- Log level for logging
     logLevel: "Info"
-    # -- The address of the stats server
-    statsServerAddress: "127.0.0.1"
-    # -- The port of the stats server
-    statsServerPort: 8125
     # -- kafka server host
     hostKafkaServer: "kafka.kafka.svc.cluster.local"
     # -- kafka server port
@@ -67,25 +67,25 @@ protocolHandler:
     # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
     bipBufferElementCount: 10
     # -- From syslog server host
-    fromHostSysLog: "0.0.0.0"
+    fromHostSysLog: 0.0.0.0
     # -- From syslog server port
     fromPortSysLog: 8129
     # -- To syslog server host
-    toHostSysLog: "127.0.0.1"
+    toHostSysLog: 127.0.0.1
     # -- To syslog server port
     toPortSysLog: 8082
+    # -- The address of the stats server
+    statsServerAddress: 127.0.0.1
+    # -- The port of the stats server
+    statsServerPort: 8125
     # -- Name of the handler
     handlerName: "ph-udp-egress"
     # -- Log level for logging
     logLevel: "Info"
-    # -- The address of the stats server
-    statsServerAddress: "127.0.0.1"
-    # -- The port of the stats server
-    statsServerPort: 8125
     # -- The address of the UDP receiver
-    udpReceiverHost: "127.0.0.1"
+    udpReceiverHost: 0.0.0.0
     # -- The port of the UDP receiver
-    udpReceiverPort: 8125
+    udpReceiverPort: 1235
     # The socket path is dynamically managed by the deployment template
 
 # Filter Chain Configuration
@@ -97,28 +97,28 @@ filters:
     # Overwrite image if using a specific filter implementation
     # repository: ffutop/ddc-filter
     # tag: latest
-    # -- The word to filter out
-    wordToFilter: "secret"
-    # -- The address of the stats server
-    hostStatsServer: 127.0.0.1
-    # -- The port of the stats server
-    portStatsServer: 8125
     # -- The maximum amount of elements the bip buffer can store. The size of a single element is 1Mb
     bipBufferElementCount: 10
-    # -- The maximum message size in bytes
-    maxMessageSize: 1050000
     # -- From syslog server address
     fromHostSysLog: 0.0.0.0
     # -- From syslog server port
-    fromPortSysLog: 8127
+    fromPortSysLog: 8130
     # -- To syslog udp address
     toHostSysLog: 127.0.0.1
     # -- To syslog udp port
     toPortSysLog: 8082
-    # -- Log level for logging [Trace, Debug, Info, Warn, Error]
-    logLevel: "Warn"
+    # -- The address of the stats server
+    statsServerAddress: 127.0.0.1
+    # -- The port of the stats server
+    statsServerPort: 8125
     # -- Name of the handler
     handlerName: "filter"
+    # -- Log level for logging [Trace, Debug, Info, Warn, Error]
+    logLevel: "Warn"
+    # -- The word to filter out
+    wordToFilter: "secret"
+    # -- The maximum message size in bytes
+    maxMessageSize: 1050000
 
 transportUdpReceive:
   securityContext:
@@ -134,14 +134,14 @@ transportUdpReceive:
   toHostSysLog: 127.0.0.1
   # -- To syslog server port
   toPortSysLog: 8082
-  # -- Name of the handler
-  handlerName: "transport-udp-receive"
-  # -- Log level for logging
-  logLevel: "Info"
   # -- The address of the stats server
   statsServerAddress: 127.0.0.1
   # -- The port of the stats server
   statsServerPort: 8125
+  # -- Name of the handler
+  handlerName: "transport-udp-receive"
+  # -- Log level for logging
+  logLevel: "Info"
   # -- Address the receiver is host on
   receiverAddress: 0.0.0.0
   # -- Port the receiver should be listening on
