@@ -1,6 +1,23 @@
-# DDC Flow Control Mechanism and Tuning Guide
+---
+title: DDC Flow Control - Tuning Guide & Bandwidth Calculator
+description: Understand how Data Diode Connector (DDC) handles flow control in unidirectional networks. Guide to tuning `send_delay_ms` to prevent silent packet loss and calculating theoretical throughput.
+head:
+  - - meta
+    - name: keywords
+      content: Flow Control, Silent Packet Loss, UDP Rate Limiting, send_delay_ms, Bandwidth Calculation, Tuning Strategy
+seo:
+  proficiencyLevel: Intermediate
+  keywords:
+    - Flow Control
+    - Silent Packet Loss
+    - UDP Rate Limiting
+    - Network Tuning
+    - Data Diode Performance
+---
 
-In a Data Diode environment, Flow Control is the most critical factor for system stability. Due to the physical unidirectionality, the Egress (Receiver) cannot send "ACKs", "Window Full", or "Slow Down" signals back to the Ingress (Sender).
+# Flow Control Mechanism & Tuning
+
+In a **Data Diode environment**, Flow Control is the most critical factor for system stability. Due to the physical unidirectionality, the [Egress (Receiver)](/en/software_architecture#egress-proxy-receiver) cannot send "ACKs", "Window Full", or "Slow Down" signals back to the [Ingress (Sender)](/en/software_architecture#ingress-proxy-sender).
 
 If the Sender transmits at full Line Speed while the diode hardware or the Receiver processes slightly slower, **Silent Packet Loss** will occur.
 
@@ -8,7 +25,7 @@ DDC addresses this issue via an application-layer **Active Send Rate Limiting** 
 
 ## How It Works
 
-The flow control mechanism resides in the `transport-udp-send` component of the **Ingress Proxy (Sender)**.
+The flow control mechanism resides in the `transport-udp-send` component of the **[Ingress Proxy](/en/software_architecture#ingress-proxy-sender)**.
 
 The implementation is straightforward: before sending every UDP packet, the sending thread is forced to pause for a specified duration.
 
@@ -31,8 +48,8 @@ This mechanism effectively **artificially increases the Inter-Packet Gap**, ther
 
 ### Parameters Involved
 
-*   **Packet Size**: DDC defaults to filling the UDP packet as much as possible, with a max payload of approximately **64KB** (65,498 bytes).
-*   **Delay**: Controlled by the `send_delay_ms` parameter in the configuration file.
+*   **Packet Size**: DDC defaults to filling the UDP packet as much as possible, with a [max payload of approximately **64KB** (65,498 bytes)](/en/protocol).
+*   **Delay**: Controlled by the `send_delay_ms` parameter in the [configuration file](/en/configuration_reference).
 
 ## Theoretical Throughput Calculation
 
@@ -59,7 +76,7 @@ Adjusting flow control parameters is a trial-and-error process. We recommend fol
 Set `send_delay_ms` to a conservative value (e.g., `5`, corresponding to ~100Mbps).
 
 ### Step 2: Monitor Packet Loss
-Observe the **Egress Proxy (Receiver)** logs or monitoring metrics (`ddc.egress.packet_loss`).
+Observe the **[Egress Proxy](/en/software_architecture#egress-proxy-receiver)** logs or [monitoring metrics](/en/operations_guide#monitoring) (`ddc.egress.packet_loss`).
 - If `packet_loss > 0`: You are sending too fast, or the intermediate network/diode is dropping packets.
 - If `packet_loss == 0`: The link is stable.
 
@@ -93,4 +110,4 @@ A3: The buffer does not affect the **Send Rate**, but it determines the **Burst 
 - If Kafka suddenly floods 100MB of data, and flow control is limited to 50MB/s.
 - A larger buffer can temporarily store this 100MB, allowing the sender to drain it slowly.
 - A smaller buffer will cause the Kafka Consumer to block (Backpressure), pausing reads from Kafka.
-- **Conclusion**: When used with flow control, appropriately increasing the buffer size helps smooth out bursty traffic from Kafka.
+- **Conclusion**: When used with flow control, appropriately increasing the buffer size helps smooth out bursty traffic from Kafka. See [Lock-Free Buffering](/en/software_architecture#lock-free-buffering-bipbuffer) for more details.

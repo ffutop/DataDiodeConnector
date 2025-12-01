@@ -1,10 +1,27 @@
-# DDC UDP Transport Protocol Specification
+---
+title: DDC UDP Protocol Specification - Headers & Fragmentation
+description: Technical specification for the Data Diode Connector (DDC) custom UDP protocol. Details the 9-byte header, packet fragmentation logic, sequence numbering for loss detection, and the receiver state machine.
+head:
+  - - meta
+    - name: keywords
+      content: UDP Protocol Spec, Packet Header, Fragmentation, Sequence Number, Packet Loss Detection, State Machine, Custom Protocol
+seo:
+  proficiencyLevel: Advanced
+  keywords:
+    - UDP Protocol Specification
+    - Packet Fragmentation
+    - Sequence Numbering
+    - Finite State Machine
+    - Reliable UDP
+---
+
+# UDP Transport Protocol Specification
 
 Version: `1.0`
 
 ## Overview
 
-The Data Diode Connector (DDC) utilizes a custom, lightweight application-layer protocol on top of UDP for communication between the Ingress Proxy and Egress Proxy components. This protocol is designed to reliably transport large, opaque binary data chunks across the data diode by splitting them into smaller UDP packets and reassembling them on the receiving end.
+The Data Diode Connector (DDC) utilizes a custom, lightweight application-layer protocol on top of UDP for communication between the **[Ingress Proxy and Egress Proxy components](/en/software_architecture)**. This protocol is designed to reliably transport large, opaque binary data chunks across the data diode by splitting them into smaller UDP packets and reassembling them on the receiving end.
 
 The protocol provides the following key features:
 
@@ -36,7 +53,7 @@ Every UDP packet exchanged between the transport components follows a fixed head
 The header has a fixed size of **9 bytes**.
 
 - **Message Type** (1 byte)
-    - An 8-bit unsigned integer that defines the purpose of the packet. See Section 3. Message Types for details.
+    - An 8-bit unsigned integer that defines the purpose of the packet. See [Message Types](#message-types) for details.
 
 - **Sequence Number** (4 bytes)
     - A 32-bit unsigned integer in **Little-Endian** format.
@@ -70,7 +87,7 @@ The `Message Type` field dictates how the receiver processes the packet.
 | `0`   | `DataFirst` | Marks the first packet of a new data chunk. The receiver transitions from `WaitingForFirstData` to `WaitingForData` state and uses the `Remaining Packets` field to know how many more packets to expect. |
 | `1`   | `Data`      | A subsequent packet of a fragmented data chunk. The receiver collects these packets until `Remaining Packets` is zero, then reassembles the full chunk.                 |
 | `2`   | `StartUp`   | A control message sent when the sender initializes. On receipt, the receiver resets its expected sequence number to `0` and returns to the `WaitingForFirstData` state, discarding any partially received data. |
-| `3`   | `HeartBeat` | A keep-alive message. The receiver logs its reception and remains in its current state. It does not affect data processing.                                            |
+| `3`   | `HeartBeat` | A [keep-alive message](/en/deployment_topologies#heartbeat-detection). The receiver logs its reception and remains in its current state. It does not affect data processing.                                            |
 | `4`   | `Shutdown`  | A control message indicating the sender is shutting down. On receipt, the receiver will terminate its processing loop.                                                 |
 
 ## State Machine and Reassembly Logic
@@ -95,7 +112,7 @@ The receiver operates as a state machine to handle packet reassembly.
 4. **Receiving the Final `Data` Packet**
     - When a `Data` packet arrives with `Remaining Packets` equal to `0`, it signals the end of the message.
     - The receiver combines all stored payloads from the intermediate buffer into a single, contiguous byte array.
-    - This reassembled data chunk is then written to the output `bip_buffer` for the downstream component.
+    - This reassembled data chunk is then written to the output [`bip_buffer`](/en/software_architecture#lock-free-buffering-bipbuffer) for the downstream component.
     - The state machine transitions back to `WaitingForFirstData`.
 
 5. **Packet Loss Handling**

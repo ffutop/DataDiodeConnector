@@ -1,11 +1,25 @@
 ---
 layout: pure
 outline: deep
+title: 下载网闸连接器 - Helm Chart & Docker 镜像
+description: 获取最新版网闸连接器 (DDC)。提供 Kubernetes Helm Charts (ArtifactHub) 安装命令、Docker 镜像拉取地址以及 GitHub 源码编译指引。
+head:
+  - - meta
+    - name: keywords
+      content: 下载DDC, Helm安装, Docker镜像, 源码编译, ArtifactHub, 网闸软件下载, Kubernetes部署
+seo:
+  proficiencyLevel: Beginner
+  keywords:
+    - Download DDC
+    - Helm Installation
+    - Docker Images
+    - Source Code
+    - Installation Guide
 ---
 
 # 下载与安装
 
-DDC 遵循“云原生优先”的设计理念。在生产环境中，我们强烈建议通过 **Helm Charts** 在 Kubernetes 上进行部署。
+DDC 遵循“云原生优先”的设计理念。在生产环境中，我们强烈建议通过 **Helm Charts** 在 Kubernetes 上进行[部署](/zh-CN/deployment_topologies)。
 
 ## Helm Charts (推荐)
 
@@ -55,7 +69,7 @@ DDC 遵循“云原生优先”的设计理念。在生产环境中，我们强�
 
 ## Docker 镜像
 
-对于非 Kubernetes 环境（如 Docker Compose 或边缘设备），您可以直接拉取镜像。
+对于非 Kubernetes 环境（如 Docker Compose 或边缘设备），您可以直接拉取镜像。详细配置请参考[配置手册](/zh-CN/configuration_reference)。
 
 ```bash
 # 拉取入口代理
@@ -67,6 +81,6 @@ docker pull ffutop/ddc-egress:latest
 
 ## 源代码
 
-为了满足最高级别的安全合规要求，您可以直接从源码构建二进制文件。
+为了满足最高级别的安全合规要求，您可以直接从源码构建二进制文件。请参阅 [开发者指南](/zh-CN/developer_guide) 了解如何从源码编译。
 
 [<i class="fa-brands fa-github"></i> 访问 GitHub 仓库](https://github.com/ffutop/DataDiodeConnector){.inline-flex .items-center .justify-center .rounded-md .bg-zinc-100 .px-4 .py-2 .text-sm .font-medium .text-zinc-900 .hover:bg-zinc-200 .transition-colors .no-underline!}

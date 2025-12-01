@@ -1,6 +1,24 @@
+---
+title: 网闸连接器开发者指南 - 插件开发与源码编译
+description: 面向开发者的网闸连接器 (DDC) 扩展指南。涵盖 Rust 工作区结构、新协议适配器 (MQTT/HTTP) 开发流程、自定义过滤器实现及源码编译/交叉编译 (ARM64) 步骤。
+head:
+  - - meta
+    - name: keywords
+      content: DDC开发, Rust插件开发, 协议适配器, 自定义过滤器, 源码编译, 交叉编译, Rust Workspace
+seo:
+  proficiencyLevel: Expert
+  keywords:
+    - Developer Guide
+    - Rust Development
+    - Protocol Adapter
+    - Custom Filter
+    - Cross Compilation
+    - Plugin System
+---
+
 # 开发者指南
 
-本指南面向希望通过添加新协议支持、创建自定义过滤器或修改核心传输逻辑来扩展网闸连接器的开发人员。
+本指南面向希望通过添加新[协议支持](/zh-CN/configuration_reference#核心协议配置-protocolhandler)、创建[自定义过滤器](/zh-CN/security_model#内容过滤与净化-dpi)或修改核心传输逻辑来扩展网闸连接器的开发人员。
 
 ## 项目结构
 
@@ -8,7 +26,7 @@
 
 *   `framework/`: 所有组件共享的核心库。
     *   `osdd`: 主应用程序运行器和 Trait 定义。
-    *   `bip_utils`: 环形缓冲区 (Bipartite Buffer) 的工具库。
+    *   `bip_utils`: [环形缓冲区 (Bipartite Buffer)](/zh-CN/software_architecture#无锁缓冲-bipbuffer) 的工具库。
     *   `logging`: 集中式日志设置。
 *   `protocol_handlers/`: 外部通信插件。
     *   `ph_kafka`: Kafka 生产者/消费者实现。
@@ -16,7 +34,7 @@
     *   `ph_mock_handler`: 测试桩 (Stub)。
 *   `filters/`: 内容检查插件。
     *   `filter`: 基础关键字过滤。
-*   `settings/`: 默认配置文件。
+*   `settings/`: 默认[配置文件](/zh-CN/configuration_reference)。
 
 ## 添加新的协议处理器
 
@@ -93,7 +111,7 @@ pub struct MyMessage {
 
 ## 创建自定义过滤器
 
-过滤器是最容易扩展的组件。
+[过滤器](/zh-CN/configuration_reference#过滤器配置-filters)是最容易扩展的组件。
 
 1.  查看 `filters/filter/src/lib.rs`。
 2.  核心函数签名通常类似于：

@@ -1,53 +1,70 @@
-# DDC 架构迭代与优化路线图 (2025)
+---
+title: DDC Roadmap 2025 - Observability & Kafka Modernization
+description: Strategic roadmap for Data Diode Connector (DDC) in 2025. Focuses on migrating observability to Vector for ARM64 compatibility and upgrading Kafka client to rdkafka for KRaft support.
+head:
+  - - meta
+    - name: keywords
+      content: DDC Roadmap, Vector Observability, rdkafka migration, ARM64 support, Kafka 4.0, Architectural Optimization
+seo:
+  proficiencyLevel: Advanced
+  keywords:
+    - Product Roadmap
+    - Observability Stack
+    - Kafka Modernization
+    - Vector
+    - rdkafka
+---
 
-## 1. 背景与目标
+# Architecture Optimization Roadmap (2025)
 
-随着 Data Diode Connector (DDC) 部署环境的多样化（如 ARM64 边缘设备）以及上游中间件（Kafka 4.x）的演进，当前版本在**可观测性基础设施**和**核心协议兼容性**方面暴露出了局限性。
+## 1. Background & Objectives
 
-本文档旨在详细分析当前面临的两个核心问题，并提出具体的架构调整方案与实施路线图。
+As the Data Diode Connector (DDC) deployment environments diversify (e.g., **ARM64** edge devices) and upstream middleware evolves (e.g., **Kafka 4.x**), the current version has exposed limitations in **observability infrastructure** and **core protocol compatibility**.
+
+This document details the analysis of two core issues and proposes a concrete architectural adjustment and implementation roadmap.
 
 ---
 
-## 2. 问题分析
+## 2. Problem Analysis
 
-### 2.1. 问题一：可观测性组件在 ARM 架构下的兼容性与功能缺失
+### 2.1. Issue 1: Observability Component Compatibility on ARM
 
-**现状：**
-*   当前使用 `fluent-bit` 作为日志收集器。
-*   **Crash 问题**：在 ARM64 (aarch64) 架构下，`fluent-bit` 默认集成的内存分配器 `jemalloc` 与部分 Linux 内核的透明大页 (THP) 或 64k 页大小配置存在冲突，导致 Segmentation Fault 无法启动。
-*   **指标缺失**：当前的 `fluent-bit` 配置未正确处理 DDC 发送的 StatsD 指标，导致监控数据（如 `dropped_packets`, `bytes_sent`）丢失。虽然部署目录中有 `telegraf.conf`，但架构上显得割裂（日志走 Fluent，指标走 Telegraf）。
+**Current Status:**
+*   Using `fluent-bit` as the log collector.
+*   **Crash Issue**: On **ARM64 (aarch64)** architecture, `fluent-bit`'s default memory allocator `jemalloc` conflicts with Transparent Huge Pages (THP) or 64k page size configurations in some Linux kernels, causing Segmentation Faults on startup.
+*   **Missing Metrics**: The current `fluent-bit` configuration does not correctly handle StatsD metrics sent by DDC, leading to loss of monitoring data (e.g., `dropped_packets`, `bytes_sent`). Although `telegraf.conf` exists in the deploy directory, the architecture feels fragmented (Logs via Fluent, Metrics via Telegraf).
 
-**影响：**
-*   边缘设备（常为 ARM 架构）部署困难。
-*   运维人员无法获得丢包率、吞吐量等关键运行指标，变成了“盲飞”。
+**Impact:**
+*   Difficult deployment on edge devices (often ARM-based).
+*   Operators are "flying blind" without key operational metrics like packet loss rate and throughput.
 
-### 2.2. 问题二：Kafka 客户端协议过时
+### 2.2. Issue 2: Outdated Kafka Client Protocol
 
-**现状：**
-*   DDC 的 `ph_kafka` 模块依赖于 `rust-kafka` crate。
-*   `rust-kafka` 是一个纯 Rust 实现，但维护活跃度较低，且主要支持 Kafka 0.8.x - 2.x 的旧版协议 API。
-*   **不兼容未来**：Kafka 4.0+ (KRaft mode) 正在逐步弃用和移除旧版协议支持。
+**Current Status:**
+*   DDC's `ph_kafka` module depends on the `rust-kafka` crate.
+*   `rust-kafka` is a pure Rust implementation but has low maintenance activity and mainly supports older Kafka 0.8.x - 2.x protocol APIs.
+*   **Future Incompatibility**: Kafka 4.0+ (KRaft mode) is gradually deprecating and removing support for older protocols.
 
-**影响：**
-*   无法连接最新的 Kafka 集群。
-*   不支持 SASL/SCRAM 等现代认证机制（或支持有限）。
-*   性能与稳定性不如经过工业级验证的客户端。
+**Impact:**
+*   Inability to connect to the latest Kafka clusters.
+*   Limited or no support for modern authentication mechanisms like SASL/SCRAM.
+*   Performance and stability lag behind industrial-grade client implementations.
 
 ---
 
-## 3. 解决方案与技术选型
+## 3. Solutions & Technology Selection
 
-### 3.1. 可观测性重构：迁移至 Vector
+### 3.1. Observability Refactoring: Migrate to Vector
 
-为了解决 ARM 兼容性并统一日志与指标收集，建议弃用 `fluent-bit`，迁移至 **Vector**。
+To resolve ARM compatibility and unify log/metric collection, we propose deprecating `fluent-bit` in favor of **[Vector](https://vector.dev/)**.
 
-**选型理由：**
-1.  **Rust 生态统一**：Vector 也是用 Rust 编写的，与 DDC 的技术栈同源，内存安全且高性能。
-2.  **原生 ARM 支持**：Vector 在 ARM64 上的构建和运行非常稳定，且不依赖 `jemalloc` 的特定 hack。
-3.  **统一管道**：Vector 可以同时作为 Syslog Server (UDP/TCP) 和 StatsD Server。它可以将日志清洗后发往 Elasticsearch/File，同时将 StatsD 指标聚合后暴露为 Prometheus Metrics。
-4.  **配置灵活**：使用 VRL (Vector Remap Language) 可以极其灵活地处理 DDC 的结构化日志。
+**Why Vector?**
+1.  **Unified Rust Ecosystem**: Vector is also written in Rust, sharing the same technology stack as DDC, ensuring memory safety and high performance.
+2.  **Native ARM Support**: Vector builds and runs stably on ARM64 without relying on specific `jemalloc` hacks.
+3.  **Unified Pipeline**: Vector can act as both a Syslog Server (UDP/TCP) and a StatsD Server. It can cleanse logs before sending them to Elasticsearch/File, and aggregate StatsD metrics to expose them as Prometheus Metrics.
+4.  **Flexible Configuration**: The Vector Remap Language (VRL) allows for extremely flexible processing of DDC's structured logs.
 
-**架构变更预览：**
+**Architecture Change Preview:**
 
 ```mermaid
 graph LR
@@ -57,45 +74,45 @@ graph LR
     Vector -->|Prometheus Scrape| Prometheus
 ```
 
-### 3.2. Kafka 客户端升级：迁移至 rdkafka
+### 3.2. Kafka Client Upgrade: Migrate to rdkafka
 
-为了支持 Kafka 4.x 及更高性能，建议将底层依赖从 `rust-kafka` 迁移至 **`rdkafka`**。
+To support Kafka 4.x and higher performance, we suggest migrating the underlying dependency from `rust-kafka` to **`rdkafka`**.
 
-**选型理由：**
-1.  **行业标准**：`rdkafka` 是 `librdkafka` (C库) 的 Rust 绑定。`librdkafka` 是除 Java 官方客户端外最权威、功能最全、性能最高的 Kafka 客户端实现。
-2.  **协议支持**：第一时间支持 Kafka 新特性（如 Transaction, Idempotency, Zstd compression, Modern SASL）。
-3.  **稳定性**：经过了大规模生产环境验证。
+**Why rdkafka?**
+1.  **Industry Standard**: `rdkafka` is the Rust binding for `librdkafka` (C library). `librdkafka` is the most authoritative, feature-rich, and performant Kafka client implementation outside of the official Java client.
+2.  **Protocol Support**: Day-one support for new Kafka features (e.g., Transaction, Idempotency, Zstd compression, Modern SASL).
+3.  **Stability**: Proven in large-scale production environments.
 
-**挑战与对策：**
-*   **构建复杂性**：`rdkafka` 依赖 C 库 (`openssl`, `sasl`, `zstd`)。
-*   **对策**：在 `Cargo.toml` 中启用 `cmake-build` 特性，并在 Dockerfile 构建阶段（Multi-stage build）安装必要的 C 编译工具链。虽然这会增加编译时间，但运行时性能和兼容性收益巨大。
+**Challenges & Mitigation:**
+*   **Build Complexity**: `rdkafka` depends on C libraries (`openssl`, `sasl`, `zstd`).
+*   **Mitigation**: Enable the `cmake-build` feature in `Cargo.toml` and install necessary C compilation toolchains during the Dockerfile build stage (Multi-stage build). While this increases compile time, the runtime performance and compatibility gains are immense.
 
 ---
 
-## 4. 实施细节与代码改造
+## 4. Implementation Details
 
-### 4.1. Vector 配置示例 (替代 Fluent-bit)
+### 4.1. Vector Configuration Example (Replacing Fluent-bit)
 
-创建新的配置文件 `deploy/vector/vector.toml`：
+Create a new configuration file `deploy/vector/vector.toml`:
 
 ```toml
 [api]
 enabled = true
 address = "0.0.0.0:8686"
 
-# 1. 接收 DDC 的 Syslog
+# 1. Receive DDC Syslog
 [sources.ddc_logs]
 type = "syslog"
 address = "0.0.0.0:514"
 mode = "udp"
 
-# 2. 接收 DDC 的 StatsD 指标
+# 2. Receive DDC StatsD Metrics
 [sources.ddc_metrics]
 type = "statsd"
 address = "0.0.0.0:8125"
 mode = "udp"
 
-# 3. 处理日志 (例如解析 JSON)
+# 3. Process Logs (e.g., Parse JSON)
 [transforms.parse_logs]
 type = "remap"
 inputs = ["ddc_logs"]
@@ -103,38 +120,38 @@ source = '''
 . = parse_json(.message) ?? .
 '''
 
-# 4. 输出日志到控制台 (或文件/Loki)
+# 4. Output Logs to Console (or File/Loki)
 [sinks.console_out]
 type = "console"
 inputs = ["parse_logs"]
 encoding.codec = "json"
 
-# 5. 将指标暴露给 Prometheus
+# 5. Expose Metrics to Prometheus
 [sinks.prometheus_exporter]
 type = "prometheus_exporter"
 inputs = ["ddc_metrics"]
 address = "0.0.0.0:9090"
 ```
 
-### 4.2. Kafka 代码重构 (Rust)
+### 4.2. Kafka Code Refactoring (Rust)
 
-**修改 `protocol_handlers/ph_kafka/Cargo.toml`:**
+**Modify `protocol_handlers/ph_kafka/Cargo.toml`:**
 
 ```toml
 [dependencies]
-# 移除 rust-kafka
+# Remove rust-kafka
 # kafka = "0.8" 
 
-# 添加 rdkafka
+# Add rdkafka
 rdkafka = { version = "0.34", features = ["ssl", "sasl", "gssapi"] }
-tokio = { version = "1", features = ["full"] } # rdkafka 通常配合 async 使用
+tokio = { version = "1", features = ["full"] } # rdkafka is often used with async
 ```
 
-**修改 `consumer.rs` (伪代码思路):**
+**Modify `consumer.rs` (Pseudo-code Idea):**
 
-原 `rust-kafka` 是同步阻塞模型，`rdkafka` 推荐使用 `Stream` 异步模型，但为了保持 DDC 现有的线程模型，可以使用 `BaseConsumer` (同步) 或在 DDC 现有线程中运行 `Runtime`。
+Original `rust-kafka` is a synchronous blocking model. `rdkafka` recommends using the `Stream` async model, but to maintain DDC's existing threading model, we can use `BaseConsumer` (Synchronous) or run a `Runtime` within the existing DDC thread.
 
-建议：由于 DDC 核心是基于 `std::thread` 的，使用 `rdkafka::consumer::BaseConsumer` 是最平滑的迁移路径。
+Recommendation: Since DDC core is based on `std::thread`, using `rdkafka::consumer::BaseConsumer` is the smoothest migration path.
 
 ```rust
 use rdkafka::config::ClientConfig;
@@ -155,7 +172,7 @@ pub fn run(config: &KafkaConfig, buffer: &BipBufferWriter) {
         match consumer.poll(Duration::from_millis(100)) {
             Some(Ok(msg)) => {
                 if let Some(payload) = msg.payload() {
-                    // 写入 RingBuffer
+                    // Write to RingBuffer
                 }
             },
             Some(Err(e)) => log::error!("Kafka error: {}", e),
@@ -167,16 +184,16 @@ pub fn run(config: &KafkaConfig, buffer: &BipBufferWriter) {
 
 ---
 
-## 5. 迭代计划
+## 5. Iteration Plan
 
-### 阶段一：基础设施升级 (v1.1.0)
-*   [ ] **任务**: 创建 `deploy/vector` 目录及配置。
-*   [ ] **任务**: 更新 `Dockerfile` 和 Kubernetes Helm Charts，将 Sidecar 从 Fluent-bit 替换为 Vector。
-*   [ ] **验证**: 在 ARM64 (如 Raspberry Pi 或 AWS Graviton) 上部署，验证无 Crash。
-*   [ ] **验证**: 访问 Vector 的 Prometheus 端点，确认能看到 `ddc_ingress_packets_sent` 等指标。
+### Phase 1: Infrastructure Upgrade (v1.1.0)
+*   [ ] **Task**: Create `deploy/vector` directory and configuration.
+*   [ ] **Task**: Update `Dockerfile` and Kubernetes Helm Charts, replacing the Fluent-bit sidecar with Vector.
+*   [ ] **Verify**: Deploy on ARM64 (e.g., Raspberry Pi or AWS Graviton) and verify no crashes.
+*   [ ] **Verify**: Access Vector's Prometheus endpoint and confirm metrics like `ddc_ingress_packets_sent` are visible.
 
-### 阶段二：Kafka 核心升级 (v1.2.0)
-*   [ ] **任务**: 重构 `ph_kafka` crate，替换依赖为 `rdkafka`。
-*   [ ] **任务**: 更新 Docker 构建环境，安装 `libssl-dev`, `libsasl2-dev`, `cmake`。
-*   [ ] **任务**: 更新 `Config.toml` 结构（如果需要新的配置项，如 `sasl_mechanism`）。
-*   [ ] **测试**: 使用 Kafka 3.x 和 4.x (Preview) 进行连通性测试。
+### Phase 2: Kafka Core Upgrade (v1.2.0)
+*   [ ] **Task**: Refactor `ph_kafka` crate, replacing dependency with `rdkafka`.
+*   [ ] **Task**: Update Docker build environment, installing `libssl-dev`, `libsasl2-dev`, `cmake`.
+*   [ ] **Task**: Update `Config.toml` structure (if new config items are needed, e.g., `sasl_mechanism`).
+*   [ ] **Test**: Connectivity testing with Kafka 3.x and 4.x (Preview).

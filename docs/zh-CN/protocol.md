@@ -1,10 +1,27 @@
+---
+title: UDP 传输协议规范 - 网闸连接器 (DDC) 报文定义
+description: 详解网闸连接器 (DDC) 自定义的轻量级 UDP 协议。包含 9 字节定长包头设计、消息分片策略、序列号丢包检测及有限状态机 (FSM) 重组逻辑。
+head:
+  - - meta
+    - name: keywords
+      content: UDP协议规范, 报文格式, 分片重组, 序列号检测, 丢包检测, 自定义协议, 状态机
+seo:
+  proficiencyLevel: Advanced
+  keywords:
+    - UDP Protocol Specification
+    - Packet Fragmentation
+    - Sequence Numbering
+    - Finite State Machine
+    - Reliable UDP
+---
+
 # 网闸连接器 UDP 传输协议规范
 
 版本: `1.0`
 
 ## 概述
 
-网闸连接器在入口代理和出口代理组件之间，基于 UDP 使用一个自定义的、轻量级的应用层协议。该协议旨在通过将大型、不透明的二进制数据块分割成更小的 UDP 数据包，并在接收端重新组装它们，从而可靠地跨网闸传输这些数据。
+网闸连接器在[入口代理和出口代理组件](/zh-CN/software_architecture)之间，基于 UDP 使用一个自定义的、轻量级的应用层协议。该协议旨在通过将大型、不透明的二进制数据块分割成更小的 UDP 数据包，并在接收端重新组装它们，从而可靠地跨网闸传输这些数据。
 
 该协议提供以下关键特性：
 
@@ -70,7 +87,7 @@
 | `0`   | `DataFirst` | 标记一个新数据块的第一个数据包。接收方从 `WaitingForFirstData` 状态转换到 `WaitingForData` 状态，并使用 `Remaining Packets` 字段来了解还需要期望多少个数据包。 |
 | `1`   | `Data`      | 一个分片数据块的后续数据包。接收方收集这些数据包，直到 `Remaining Packets` 为零，然后重组完整的块。 |
 | `2`   | `StartUp`   | 发送方初始化时发送的控制消息。接收到后，接收方将其期望的序列号重置为 `0`，并返回到 `WaitingForFirstData` 状态，丢弃任何部分接收的数据。 |
-| `3`   | `HeartBeat` | 一个心跳维持消息。接收方记录其接收情况并保持当前状态。它不影响数据处理。 |
+| `3`   | `HeartBeat` | 一个[心跳维持](/zh-CN/deployment_topologies#缓解策略)消息。接收方记录其接收情况并保持当前状态。它不影响数据处理。 |
 | `4`   | `Shutdown`  | 一个控制消息，指示发送方正在关闭。接收到后，接收方将终止其处理循环。 |
 
 ## 4. 状态机与重组逻辑
@@ -95,7 +112,7 @@
 4. **接收最后一个 `Data` 包**
     - 当一个 `Remaining Packets` 等于 `0` 的 `Data` 数据包到达时，它标志着消息的结束。
     - 接收方将中间缓冲区中所有存储的载荷组合成一个单一、连续的字节数组。
-    - 这个重组后的数据块随后被写入输出 `bip_buffer`，供下游组件使用。
+    - 这个重组后的数据块随后被写入输出 [`bip_buffer`](/zh-CN/software_architecture#无锁缓冲-bipbuffer)，供下游组件使用。
     - 状态机转换回 `WaitingForFirstData`。
 
 5. **丢包处理**

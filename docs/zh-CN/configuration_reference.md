@@ -1,8 +1,25 @@
+---
+title: 网闸连接器配置参考手册 - Helm & Docker
+description: 全面的网闸连接器 (DDC) 配置指南。详解 Helm values.yaml 和 Docker 环境变量，涵盖 Kafka/UDP 协议适配、传输层流控、安全过滤器及日志监控配置。
+head:
+  - - meta
+    - name: keywords
+      content: 网闸配置, Helm Chart, Docker Compose, Kafka配置, UDP配置, 流控参数, 安全过滤, 日志配置
+seo:
+  proficiencyLevel: Intermediate
+  keywords:
+    - Configuration Reference
+    - Helm Values
+    - Docker Environment Variables
+    - Protocol Handler
+    - Transport Layer
+---
+
 # 配置参考手册
 
-本工程目前推荐使用 Kubernetes (Helm) 或 Docker Compose 进行部署。
+本工程目前推荐使用 **Kubernetes (Helm)** 或 **Docker Compose** 进行部署。
 
-本文档基于 Helm Chart 的 `values.yaml` 结构进行说明，这些参数定义了各个微服务组件（Ingress/Egress、协议处理、传输层）的行为。在使用 Docker Compose 时，这些参数通常映射为环境变量或启动命令参数。
+本文档基于 Helm Chart 的 `values.yaml` 结构进行说明，这些参数定义了各个微服务组件（[入口代理/出口代理](/zh-CN/software_architecture)、协议处理、传输层）的行为。在使用 Docker Compose 时，这些参数通常映射为环境变量或启动命令参数。
 
 您可以在 ArtifactHub 上找到对应的 Helm Charts：
 - [入口代理 Helm Chart](https://artifacthub.io/packages/helm/ffutop/data-diode-connector-ingress)
@@ -10,7 +27,7 @@
 
 ## 入口代理配置
 
-入口代理部署在网闸的发送侧（高安全区/源端），负责从源系统接收数据，进行可选的过滤，并通过 UDP 单向发送给网闸。
+[入口代理](/zh-CN/software_architecture#逻辑架构拓扑)部署在网闸的发送侧（高安全区/源端），负责从源系统接收数据，进行可选的过滤，并通过 UDP 单向发送给网闸。
 
 ### 核心协议配置 (`protocolHandler`)
 
@@ -28,8 +45,8 @@
 | `portKafkaServer` | `9092` | 源 Kafka Broker 的端口。 |
 | `topicName` | `"TestTopic"` | 要订阅/消费的 Kafka 主题名称。 |
 | `maxBytesPerPartition` | `1000000` | 每次从 Kafka 分区获取的最大字节数。 |
-| `bipBufferElementCount` | `2` | 内部环形缓冲区大小（单位：元素个数，每元素约 1MB）。 |
-| `statsServerAddress` | `"0.0.0.0"` | StatsD 统计服务器地址。 |
+| `bipBufferElementCount` | `2` | 内部[环形缓冲区](/zh-CN/software_architecture#无锁缓冲-bipbuffer)大小（单位：元素个数，每元素约 1MB）。 |
+| `statsServerAddress` | `"0.0.0.0"` | [StatsD](/zh-CN/operations_guide#指标-statsd) 统计服务器地址。 |
 | `statsServerPort` | `8081` | StatsD 统计服务器端口。 |
 
 #### UDP 模式 (`protocolHandler.udp`)
@@ -50,12 +67,12 @@
 | `senderPort` | `33333` | 发送进程绑定的本地端口。 |
 | `receiverAddress` | `"0.0.0.0"` | **目标 IP**：网闸对端（Egress 端）或物理网闸设备的接收 IP。 |
 | `receiverPort` | `1234` | **目标端口**：网闸对端的接收端口。 |
-| `sendDelayMs` | `5` | **流控延迟**：每发送一个 UDP 包后的等待时间（毫秒）。用于防止压垮物理网闸或接收端。 |
+| `sendDelayMs` | `5` | **[流控延迟](/zh-CN/flow_control)**：每发送一个 UDP 包后的等待时间（毫秒）。用于防止压垮物理网闸或接收端。 |
 | `bipBufferElementCount` | `10` | 传输层缓冲区大小。 |
 
 ### 过滤器配置 (`filters`)
 
-可选的安全过滤层，可配置多个过滤器。
+可选的[安全过滤层](/zh-CN/security_model)，可配置多个过滤器。
 
 | 参数 (Key) | 默认值 | 描述 |
 | :--- | :--- | :--- |
@@ -65,7 +82,7 @@
 
 ## 出口代理配置
 
-出口代理部署在网闸的接收侧（低安全区/目的端），负责监听来自网闸的 UDP 流量，重组数据包，并转发给目标系统。
+[出口代理](/zh-CN/software_architecture#逻辑架构拓扑)部署在网闸的接收侧（低安全区/目的端），负责监听来自网闸的 UDP 流量，重组数据包，并转发给目标系统。
 
 ### 传输层接收配置 (`transportUdpReceive`)
 
@@ -110,7 +127,7 @@
 | 参数 (Key) | 默认值 | 描述 |
 | :--- | :--- | :--- |
 | `logLevel` | `"Warn"` | 日志级别。可选值：`Trace`, `Debug`, `Info`, `Warn`, `Error`。 |
-| `fromHostSysLog` | `"0.0.0.0"` | 发送 Syslog 的源绑定地址。 |
+| `fromHostSysLog` | `"0.0.0.0"` | 发送 [Syslog](/zh-CN/operations_guide#syslog) 的源绑定地址。 |
 | `toHostSysLog` | `"127.0.0.1"` | 集中式 Syslog 服务器地址。 |
 | `toPortSysLog` | `8082` | 集中式 Syslog 服务器端口。 |
 | `images.<component>.repository` | - | 各组件的 Docker 镜像仓库地址。 |

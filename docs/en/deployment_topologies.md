@@ -1,6 +1,23 @@
-# Deployment Topologies and High Availability
+---
+title: DDC Deployment Topologies - High Availability (HA) & Scale
+description: Deployment patterns for Data Diode Connector. Covers strict 1:1 pairing rule, redundant links (Active-Active), Kafka consumer group failover, and Cold Standby strategies for high availability.
+head:
+  - - meta
+    - name: keywords
+      content: Deployment Topology, High Availability, HA Strategy, Kafka Failover, Active-Active, Redundant Link, One-to-One Pairing
+seo:
+  proficiencyLevel: Advanced
+  keywords:
+    - Deployment Topologies
+    - High Availability
+    - Active-Active Replication
+    - Kafka Failover
+    - Redundant Link
+---
 
-In enterprise environments, deploying the Data Diode Connector (DDC) must follow a **strict one-to-one binding principle**. This document outlines architectural patterns and High Availability (HA) strategies based on this core constraint.
+# Deployment Topologies & High Availability
+
+In enterprise environments, deploying the Data Diode Connector (DDC) must follow a **strict one-to-one binding principle**. This document outlines architectural patterns and **High Availability (HA)** strategies based on this core constraint.
 
 ## Core Architecture Principle: Single Logical Processing Unit
 
@@ -10,7 +27,7 @@ According to the [Protocol Design](/en/protocol) of the Data Diode Connector, th
 - **No Reuse**: It does **NOT** support multiple Ingress instances sending to the same Egress instance, nor does it support one Ingress distributing to multiple Egress instances.
 
 ### Rationale
-The Ingress and Egress proxies maintain a state machine for a single data stream (including sequence number tracking and fragmentation/reassembly state). If multiple Ingress proxies send data to the same Egress proxy, it causes sequence number conflicts and state confusion at the receiver, leading to severe packet loss and reassembly failures.
+The Ingress and Egress proxies maintain a state machine for a single data stream (including [sequence number tracking](/en/protocol#header-fields) and fragmentation/reassembly state). If multiple Ingress proxies send data to the same Egress proxy, it causes sequence number conflicts and state confusion at the receiver, leading to severe packet loss and reassembly failures.
 
 Therefore, all scaling and high-availability designs must be based on **paired Ingress and Egress proxies**.
 
@@ -33,8 +50,8 @@ graph LR
 ```
 
 - **Configuration**:
-    - The Ingress Proxy is configured with a unique destination UDP address/port.
-    - The Egress Proxy listens on the corresponding UDP port.
+    - The [Ingress Proxy](/en/configuration_reference#ingress-proxy-configuration) is configured with a unique destination UDP address/port.
+    - The [Egress Proxy](/en/configuration_reference#egress-proxy-configuration) listens on the corresponding UDP port.
 
 ### Multi-Link Pair Pattern
 
@@ -137,7 +154,7 @@ graph LR
     - If the Ingress Proxy of Link Pair 1 crashes, Kafka triggers a Rebalance, reassigning the Partitions originally belonging to Link Pair 1 to the Ingress Proxy of Link Pair 2.
     - At this point, the Ingress Proxy of Link Pair 2 carries double the traffic, but for the Egress Proxy of Link Pair 2, it still receives valid sequential data from a single source (Link Pair 2's Ingress), **complying with the 1:1 protocol requirement**.
 - **Prerequisites**:
-    - The Ingress Proxy of each link pair must run as a Kafka Consumer.
+    - The Ingress Proxy of each link pair must run as a [Kafka Consumer](/en/configuration_reference#kafka-mode-protocolhandlerkafka).
     - Sufficient physical channels (ports) must be planned for use by each Ingress-Egress pair.
 
 ### Cold Standby Mode (Active-Passive)
@@ -173,4 +190,3 @@ Since we now adopt a strict pairing pattern, monitoring becomes more explicit:
 | **Resource Constrained/Simple** | **K8s Cold Standby** | Single Pod pair; relies on K8s auto-restart. |
 
 **Note**: Whenever scaling, you must increase both Ingress and Egress proxies simultaneously and configure independent communication ports/channels. Multi-to-one topology is strictly prohibited.
-

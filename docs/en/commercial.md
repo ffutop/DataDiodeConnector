@@ -1,11 +1,25 @@
 ---
 layout: pure
 outline: false
+title: DDC Commercial Licensing - Community vs Enterprise Pricing
+description: Compare Data Diode Connector (DDC) Community Edition (Free) vs Enterprise Edition. Enterprise includes LTS support, SLA response, advanced DPI filtering, and Schema validation for critical infrastructure.
+head:
+  - - meta
+    - name: keywords
+      content: DDC Pricing, Data Diode Software, Enterprise Licensing, SLA Support, DPI Filtering, Schema Validation, LTS
+seo:
+  proficiencyLevel: Beginner
+  keywords:
+    - Commercial Licensing
+    - Pricing Model
+    - Enterprise Edition
+    - SLA Support
+    - DPI Filtering
 ---
 
-# Commercial Licensing
+# Commercial Licensing & Pricing
 
-Data Diode Connector is committed to Open Source while providing enterprise-grade reliability for mission-critical infrastructure.
+Data Diode Connector (DDC) is committed to Open Source while providing **enterprise-grade reliability** for mission-critical infrastructure.
 
 <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -21,7 +35,7 @@ Data Diode Connector is committed to Open Source while providing enterprise-grad
         <i class="fa-solid fa-check text-green-500"></i> Core UDP Transport
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-700">
-        <i class="fa-solid fa-check text-green-500"></i> Kafka Ingress/Egress Adapters
+        <i class="fa-solid fa-check text-green-500"></i> [Kafka Ingress/Egress Adapters](/en/configuration_reference#kafka-mode-protocolhandler-kafka)
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-700">
         <i class="fa-solid fa-check text-green-500"></i> Basic Filters (Regex, Keyword)
@@ -55,7 +69,7 @@ Data Diode Connector is committed to Open Source while providing enterprise-grad
         <i class="fa-solid fa-check text-white"></i> 24/7 Critical SLA Support
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-300">
-        <i class="fa-solid fa-check text-white"></i> Advanced DPI & Schema Validation
+        <i class="fa-solid fa-check text-white"></i> Advanced [DPI & Schema Validation](/en/security_model#content-filtering-and-sanitization)
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-300">
         <i class="fa-solid fa-check text-white"></i> Certified Hardware Compatibility
@@ -75,14 +89,14 @@ Data Diode Connector is committed to Open Source while providing enterprise-grad
 | **Core Engine** | | |
 | Rust-based Transport | ✅ | ✅ |
 | 10Gbps Line Rate | ✅ | ✅ |
-| Flow Control | ✅ | ✅ |
+| [Flow Control](/en/flow_control) | ✅ | ✅ |
 | **Protocols** | | |
 | Kafka (Standard) | ✅ | ✅ |
 | UDP / TCP | ✅ | ✅ |
 | Custom Proprietary Protocols | ❌ | ✅ |
 | **Security** | | |
 | Basic Filtering | ✅ | ✅ |
-| Deep Packet Inspection (DPI) | ❌ | ✅ |
+| [Deep Packet Inspection (DPI)](/en/security_model#content-filtering-and-sanitization) | ❌ | ✅ |
 | Schema Validation (Avro/JSON) | ❌ | ✅ |
 | **Support** | | |
 | Channel | GitHub Issues | Dedicated Portal / Slack |

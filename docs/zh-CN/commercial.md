@@ -1,11 +1,25 @@
 ---
 layout: pure
 outline: false
+title: 网闸连接器商业授权 - 社区版 vs 企业版定价
+description: 对比网闸连接器 (DDC) 社区版 (免费) 与企业版的功能差异。企业版提供长期支持 (LTS)、SLA 响应、高级 DPI 过滤及 Schema 校验功能，适用于关键基础设施。
+head:
+  - - meta
+    - name: keywords
+      content: 网闸软件价格, DDC授权, 企业版功能, LTS支持, SLA服务, DPI过滤, 商业版试用
+seo:
+  proficiencyLevel: Beginner
+  keywords:
+    - Commercial Licensing
+    - Pricing Model
+    - Enterprise Edition
+    - SLA Support
+    - DPI Filtering
 ---
 
 # 商业授权与定价
 
-网闸连接器 (DDC) 致力于在保持开源核心活力的同时，为关键基础设施提供企业级的可靠性保障。
+网闸连接器 (DDC) 致力于在保持开源核心活力的同时，为**关键基础设施**提供企业级的可靠性保障。
 
 <div class="mt-8 grid grid-cols-1 lg:grid-cols-2 gap-8">
 
@@ -21,7 +35,7 @@ outline: false
         <i class="fa-solid fa-check text-green-500"></i> 核心 UDP 传输引擎
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-700">
-        <i class="fa-solid fa-check text-green-500"></i> Kafka 入口/出口适配器
+        <i class="fa-solid fa-check text-green-500"></i> [Kafka 入口/出口适配器](/zh-CN/configuration_reference#核心协议配置-protocolhandler)
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-700">
         <i class="fa-solid fa-check text-green-500"></i> 基础过滤器 (正则、关键字)
@@ -52,10 +66,10 @@ outline: false
         <i class="fa-solid fa-check text-white"></i> 长期支持 (LTS) 二进制版本
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-300">
-        <i class="fa-solid fa-check text-white"></i> 7x24小时 关键SLA支持
+        <i class="fa-solid fa-check text-white"></i> 7x24小时 关键 SLA 支持
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-300">
-        <i class="fa-solid fa-check text-white"></i> 高级 DPI & Schema 校验
+        <i class="fa-solid fa-check text-white"></i> 高级 [DPI & Schema 校验](/zh-CN/security_model#内容过滤与净化-dpi)
       </li>
       <li class="flex items-center gap-3 text-sm text-zinc-300">
         <i class="fa-solid fa-check text-white"></i> 认证硬件兼容性保证
@@ -75,14 +89,14 @@ outline: false
 | **核心引擎** | | |
 | Rust 高性能传输 | ✅ | ✅ |
 | 10Gbps 线速支持 | ✅ | ✅ |
-| 流量控制机制 | ✅ | ✅ |
+| [流量控制机制](/zh-CN/flow_control) | ✅ | ✅ |
 | **协议支持** | | |
 | Kafka (标准协议) | ✅ | ✅ |
 | UDP / TCP | ✅ | ✅ |
 | 定制私有协议适配 | ❌ | ✅ |
 | **安全过滤** | | |
 | 基础过滤 (正则/关键字) | ✅ | ✅ |
-| 深度包检测 (DPI) | ❌ | ✅ |
+| [深度包检测 (DPI)](/zh-CN/security_model#内容过滤与净化-dpi) | ❌ | ✅ |
 | 业务 Schema 校验 (Avro/JSON) | ❌ | ✅ |
 | **技术支持** | | |
 | 支持渠道 | GitHub Issues | 专属工单门户 / Slack |

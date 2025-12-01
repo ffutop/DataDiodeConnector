@@ -87,19 +87,32 @@ export default withMermaid(defineConfig({
     head.push(['meta', { name: 'twitter:description', content: pageData.frontmatter.description || "Secure, high-performance, unidirectional data transfer suite powered by Rust." }])
 
     // 5. JSON-LD Structured Data
-    const jsonLd = {
+    const seoData = pageData.frontmatter.seo || {}
+    
+    const jsonLd: any = {
       "@context": "https://schema.org",
       "@type": "TechArticle",
       "headline": pageData.frontmatter.title || "Data Diode Connector Documentation",
       "image": [`${hostname}${ogImage}`],
-      "datePublished": "2025-11-28T08:00:00+08:00", // Ideally fetch from git creation time if possible, or omit
+      "datePublished": "2025-11-28T08:00:00+08:00",
       "dateModified": pageData.lastUpdated ? new Date(pageData.lastUpdated).toISOString() : new Date().toISOString(),
       "author": {
         "@type": "Person",
         "name": "ffutop",
         "url": hostname
-      }
+      },
+      // Dynamic injection from Frontmatter
+      "proficiencyLevel": seoData.proficiencyLevel || "Beginner",
     }
+
+    // Inject 'about' concepts if keywords exist in frontmatter
+    if (seoData.keywords && Array.isArray(seoData.keywords)) {
+      jsonLd.about = seoData.keywords.map((k: string) => ({
+        "@type": "Thing",
+        "name": k
+      }))
+    }
+
     head.push(['script', { type: 'application/ld+json' }, JSON.stringify(jsonLd)])
 
     return head
@@ -194,7 +207,7 @@ export default withMermaid(defineConfig({
             collapsed: false,
             items: [
               { text: '软件架构', link: '/zh-CN/software_architecture' },
-              { text: '部署拓扑与高可用', link: '/zh-CN/deployment_topologies' },
+              { text: '部署拓扑', link: '/zh-CN/deployment_topologies' },
               { text: '安全模型', link: '/zh-CN/security_model' },
               { text: '协议规范', link: '/zh-CN/protocol' },
             ]
@@ -203,7 +216,7 @@ export default withMermaid(defineConfig({
             text: '运维与调优',
             collapsed: false,
             items: [
-              { text: '配置参考手册', link: '/zh-CN/configuration_reference' },
+              { text: '配置参考', link: '/zh-CN/configuration_reference' },
               { text: '运维指南', link: '/zh-CN/operations_guide' },
               { text: '流量控制', link: '/zh-CN/flow_control' },
               { text: '内核调优', link: '/zh-CN/kernel_tuning' },
@@ -212,8 +225,7 @@ export default withMermaid(defineConfig({
         ],
 
         footer: {
-          message: '基于 Apache-2.0 许可发布',
-          copyright: '版权所有 © 2020-2025 Ministerie van Defensie & 贡献者'
+          copyright: '版权所有 © 2025 ffutop'
         },
 
         editLink: {

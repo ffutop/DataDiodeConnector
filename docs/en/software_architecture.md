@@ -1,8 +1,29 @@
+---
+title: DDC Software Architecture - Rust & Lock-Free Design
+description: Technical deep dive into Data Diode Connector (DDC) software architecture. Explains the Ingress/Egress split, Lock-free Ring Buffers (BipBuffer), Threading Model, and the Filter Pipeline.
+head:
+  - - meta
+    - name: keywords
+      content: Software Architecture, Rust, Data Diode, Lock-free Buffer, BipBuffer, Ingress Proxy, Egress Proxy, Zero Copy
+seo:
+  proficiencyLevel: Expert
+  keywords:
+    - Software Architecture
+    - Rust Programming
+    - Lock-free Concurrency
+    - Zero Copy
+    - Pipeline Design
+---
+
 # Software Architecture
 
-The Data Diode Connector (DDC) is designed as a high-performance, modular software suite that facilitates secure, unidirectional data transfer. This document outlines the software architecture, component interactions, and data flow principles that drive the system.
+The **Data Diode Connector (DDC)** is designed as a high-performance, modular software suite that facilitates secure, unidirectional data transfer. This document outlines the software architecture, component interactions, and data flow principles that drive the system.
 
 ## High-Level Overview
+
+### Logical Topology
+
+The diagram below illustrates the core topology: Data flows from the **High Security Side (Ingress)**, through the physical data diode, to the **Low Security Side (Egress)**.
 
 <div class="relative bg-zinc-50/50 border border-zinc-200 rounded-xl my-8 overflow-hidden">
     <!-- Background Grid Pattern -->
@@ -75,7 +96,7 @@ The Data Diode Connector (DDC) is designed as a high-performance, modular softwa
 
 The DDC software is split into two distinct, independent applications that never communicate bi-directionally:
 
-1. **Ingress Proxy (Sender)**: Resides on the High-Security Network (Source). It consumes data from sources (Kafka, UDP, etc.), optionally filters it, and pushes it across the data diode.
+1. **Ingress Proxy (Sender)**: Resides on the High-Security Network (Source). It consumes data from sources (Kafka, UDP, etc.), optionally filters it via [Content Filtering](/en/security_model#content-filtering-and-sanitization-dpi), and pushes it across the data diode.
 2. **Egress Proxy (Receiver)**: Resides on the Low-Security Network (Destination). It listens for data coming from the diode, reassembles it, and delivers it to the target systems.
 
 Both applications share a common core framework written in **Rust**, prioritizing memory safety, zero-copy data handling, and high concurrency.
@@ -108,7 +129,7 @@ The **Filter Handler** sits in the middle and enforces security policies. It ins
 
 ### 3. Transport Handler
 The **Transport Handler** manages the actual transmission across the air gap / diode.
-- **Ingress Side (`transport-udp-send`)**: Takes data from the buffer, fragments it into UDP packets, adds sequence headers, and blasts it to the diode interface. It implements rate limiting (`send_delay_ms`) to prevent overwhelming the hardware.
+- **Ingress Side (`transport-udp-send`)**: Takes data from the buffer, fragments it into UDP packets, adds [sequence headers](/en/protocol#header-fields), and blasts it to the diode interface. It implements [rate limiting](/en/flow_control) (`send_delay_ms`) to prevent overwhelming the hardware.
 - **Egress Side (`transport-udp-receive`)**: Listens on the diode interface, re-orders packets, checks for gaps (sequence numbers), reassembles the fragments, and writes the complete payload to the next buffer.
 
 ## Data Flow & Memory Management
@@ -133,4 +154,4 @@ This separation ensures that a slow filter logic does not necessarily block the 
 
 1. **Stateless Core**: The core logic maintains minimal state. State related to packet reassembly is transient and discarded upon error to prevent memory leaks.
 2. **Panic-Proofing**: The architecture is designed to be resilient. Providing error wrapping (using `error_chain`) to ensure that recoverable errors (like a temporary network glitch) do not crash the entire service.
-3. **Configurable Latency vs. Throughput**: Through `bip_buffer_element_count` and `send_delay_ms`, operators can tune the system for low latency (small buffers, low delay) or high throughput (large buffers, batched sends).
+3. **Configurable Latency vs. Throughput**: Through `bip_buffer_element_count` and `send_delay_ms`, operators can [tune the system](/en/kernel_tuning) for low latency (small buffers, low delay) or high throughput (large buffers, batched sends).

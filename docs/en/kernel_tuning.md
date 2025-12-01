@@ -1,8 +1,25 @@
-# Kernel-Level Performance Tuning for DDC
+---
+title: Kernel Tuning for 10Gbps Data Diode Performance
+description: High-performance tuning guide for Data Diode Connector (DDC) on Linux. Covers UDP Socket buffers (`rmem_max`), CPU affinity pinning, NIC offloading (GRO/GSO), and interrupt coalescing to achieve 10Gbps line rate.
+head:
+  - - meta
+    - name: keywords
+      content: Linux Kernel Tuning, UDP Optimization, CPU Affinity, NIC Offloading, GRO, GSO, 10Gbps Performance, rmem_max
+seo:
+  proficiencyLevel: Expert
+  keywords:
+    - Kernel Tuning
+    - UDP Optimization
+    - CPU Affinity
+    - NIC Offloading
+    - 10Gbps Networking
+---
 
-While DDC is designed for high performance with its Rust implementation, lock-free buffers, and efficient data handling, achieving maximum throughput, especially at 1Gbps or 10Gbps line rates, often requires tuning the underlying operating system kernel. DDC operates at the user-space application layer, but its performance is fundamentally limited by how efficiently the Linux kernel handles network packets and CPU resources.
+# Linux Kernel-Level Performance Tuning
 
-This guide focuses on Linux kernel parameters and system configurations that can significantly impact DDC's UDP-based transport performance.
+While DDC is designed for high performance with its Rust implementation, [lock-free buffers](/en/software_architecture#lock-free-buffering-bipbuffer), and efficient data handling, achieving maximum throughput, especially at **1Gbps or 10Gbps Line Rates**, often requires tuning the underlying operating system kernel. DDC operates at the user-space application layer, but its performance is fundamentally limited by how efficiently the Linux kernel handles network packets and CPU resources.
+
+This guide focuses on Linux kernel parameters and system configurations that can significantly impact DDC's [UDP-based transport](/en/protocol) performance.
 
 ## UDP Socket Buffer Sizes
 
@@ -33,7 +50,7 @@ sudo sysctl -w net.core.wmem_default=67108864
 
 ### Monitoring UDP Buffer Overruns:
 
-Use `netstat -su` or `ss -su` to monitor receive and send buffer errors. Look for the "receive buffer errors" or "packets dropped" counts.
+Use `netstat -su` or `ss -su` to monitor receive and send buffer errors. Look for the "receive buffer errors" or "packets dropped" counts. This is a key step in [troubleshooting packet loss](/en/operations_guide#troubleshooting).
 
 ```bash
 netstat -su
@@ -50,7 +67,7 @@ Network packet processing, especially on multi-core systems, can benefit signifi
 
 ### CPU Affinity for DDC Processes:
 
-Dedicate specific CPU cores to the DDC Ingress/Egress processes. This reduces context switching and ensures that DDC has exclusive access to CPU resources.
+Dedicate specific CPU cores to the [DDC Ingress/Egress](/en/software_architecture) processes. This reduces context switching and ensures that DDC has exclusive access to CPU resources.
 
 *Example (pin process to CPU 1 and 2):*
 
@@ -64,7 +81,7 @@ Ensure that network card interrupts are processed by dedicated CPU cores, ideall
 
 ## Network Interface Card (NIC) Offloading
 
-Modern NICs can offload various tasks from the CPU, significantly improving network performance. However, some offloading features might interfere with deep packet inspection if DDC were to perform such analysis at the raw packet level. For DDC's current model (where protocol handlers process already received application data), offloading is generally beneficial.
+Modern NICs can offload various tasks from the CPU, significantly improving network performance. However, if DDC were to perform [Deep Packet Inspection (DPI)](/en/security_model#content-filtering-and-sanitization) at the raw packet level, some offloading features might interfere. For DDC's current model (where protocol handlers process already received application data), offloading is generally beneficial.
 
 ### Key `ethtool` Parameters:
 
@@ -91,7 +108,7 @@ Interrupt coalescing groups multiple hardware interrupts from the NIC into a sin
 - **`rx-frames`**: Number of received frames before an interrupt is generated.
 - **`rx-usecs`**: Microseconds to wait before generating an interrupt.
 
-Adjusting these parameters is a trade-off: higher values (more coalescing) lead to lower CPU utilization but higher latency; lower values (less coalescing) lead to higher CPU utilization but lower latency. For DDC, especially when `send_delay_ms=0`, a balance is key.
+Adjusting these parameters is a trade-off: higher values (more coalescing) lead to lower CPU utilization but higher latency; lower values (less coalescing) lead to higher CPU utilization but lower latency. For DDC, especially when [`send_delay_ms=0`](/en/flow_control#step-4-the-0-trap), a balance is key.
 
 *Example (adjust coalescing):*
 
@@ -128,4 +145,4 @@ To effectively tune, continuous monitoring is crucial:
 
 ## Conclusion
 
-Optimizing DDC performance, particularly for high-throughput scenarios, extends beyond application-level configuration. By strategically tuning kernel parameters related to UDP buffering, CPU scheduling, NIC offloading, and interrupt handling, administrators can unlock the full potential of their hardware and achieve reliable, high-speed data transfer across the data diode. Always test changes thoroughly in a controlled environment.
+Optimizing DDC performance, particularly for high-throughput scenarios, extends beyond [application-level configuration](/en/configuration_reference). By strategically tuning kernel parameters related to UDP buffering, CPU scheduling, NIC offloading, and interrupt handling, administrators can unlock the full potential of their hardware and achieve reliable, high-speed data transfer across the data diode. Always test changes thoroughly in a controlled environment.

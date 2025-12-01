@@ -1,8 +1,25 @@
-# 内核级性能调优
+---
+title: 网闸连接器内核级性能调优 - 10Gbps 线速优化
+description: 网闸连接器 (DDC) 在 Linux 下的高性能调优指南。涵盖 UDP Socket 缓冲区 (`rmem_max`)、CPU 亲和性绑定、网卡 (NIC) 卸载及中断合并策略，助力实现 10Gbps 线速传输。
+head:
+  - - meta
+    - name: keywords
+      content: Linux内核调优, UDP性能优化, 网卡中断亲和性, CPU绑定, NIC卸载, GRO/GSO, 10Gbps线速, rmem_max
+seo:
+  proficiencyLevel: Expert
+  keywords:
+    - Kernel Tuning
+    - UDP Optimization
+    - CPU Affinity
+    - NIC Offloading
+    - 10Gbps Networking
+---
 
-尽管网闸连接器通过 Rust 实现、无锁缓冲区和高效数据处理被设计为高性能应用，但要达到最大的吞吐量，尤其是在 1Gbps 或 10Gbps 的线速（Line Rate）下，通常需要对底层操作系统内核进行调优。网闸连接器在用户空间应用层运行，但其性能从根本上受限于 Linux 内核处理网络数据包和 CPU 资源的效率。
+# Linux 内核级性能调优指南
 
-本指南重点介绍可能显著影响网闸连接器基于 UDP 传输性能的 Linux 内核参数和系统配置。
+尽管网闸连接器通过 Rust 实现、[无锁缓冲区](/zh-CN/software_architecture#无锁缓冲-bipbuffer)和高效数据处理被设计为高性能应用，但要达到最大的吞吐量，尤其是在 **1Gbps 或 10Gbps 的线速 (Line Rate)** 下，通常需要对底层操作系统内核进行调优。网闸连接器在用户空间应用层运行，但其性能从根本上受限于 Linux 内核处理网络数据包和 CPU 资源的效率。
+
+本指南重点介绍可能显著影响网闸连接器基于 [UDP 传输](/zh-CN/protocol)性能的 Linux 内核参数和系统配置。
 
 ## UDP Socket 缓冲区大小
 
@@ -33,7 +50,7 @@ sudo sysctl -w net.core.wmem_default=67108864
 
 ### 监控 UDP 缓冲区溢出：
 
-使用 `netstat -su` 或 `ss -su` 监控接收和发送缓冲区错误。查找“receive buffer errors”或“packets dropped”计数。
+使用 `netstat -su` 或 `ss -su` 监控接收和发送缓冲区错误。查找“receive buffer errors”或“packets dropped”计数。这也是[运维指南](/zh-CN/operations_guide#监控)中排查丢包问题的重要步骤。
 
 ```bash
 netstat -su
@@ -50,7 +67,7 @@ netstat -su
 
 ### 网闸连接器进程的 CPU 亲和性：
 
-为网闸连接器入口代理/出口代理进程分配专用的 CPU 核心。这减少了上下文切换，并确保网闸连接器独占 CPU 资源。
+为网闸连接器[入口代理/出口代理](/zh-CN/software_architecture)进程分配专用的 CPU 核心。这减少了上下文切换，并确保网闸连接器独占 CPU 资源。
 
 *示例（将进程绑定到 CPU 1 和 2）：*
 
@@ -64,7 +81,7 @@ sudo taskset -c 1,2 <ddc_进程ID>
 
 ## 网卡 (NIC) 卸载
 
-现代网卡可以从 CPU 卸载各种任务，显著提高网络性能。然而，如果网闸连接器在原始数据包级别进行深度包检测 (DPI)，某些卸载功能可能会产生干扰。对于网闸连接器当前的模型（协议处理器处理已接收到的应用层数据），卸载通常是有益的。
+现代网卡可以从 CPU 卸载各种任务，显著提高网络性能。然而，如果网闸连接器在原始数据包级别进行[深度包检测 (DPI)](/zh-CN/security_model#内容过滤与净化-dpi)，某些卸载功能可能会产生干扰。对于网闸连接器当前的模型（协议处理器处理已接收到的应用层数据），卸载通常是有益的。
 
 ### 关键 `ethtool` 参数：
 
@@ -91,7 +108,7 @@ sudo ethtool -K eth0 gro on gso on tx-checksum-ip-generic on rx-checksum-ip-gene
 - **`rx-frames`**：在生成中断之前接收到的帧数。
 - **`rx-usecs`**：在生成中断之前等待的微秒数。
 
-调整这些参数是一个权衡过程：较高的值（更积极的合并）导致较低的 CPU 利用率但较高的延迟；较低的值（较少的合并）导致较高的 CPU 利用率但较低的延迟。对于网闸连接器，特别是在 `send_delay_ms=0` 时，平衡至关重要。
+调整这些参数是一个权衡过程：较高的值（更积极的合并）导致较低的 CPU 利用率但较高的延迟；较低的值（较少的合并）导致较高的 CPU 利用率但较低的延迟。对于网闸连接器，特别是在 [`send_delay_ms=0`](/zh-CN/flow_control#第四步-处理-0-的陷阱) 时，平衡至关重要。
 
 *示例（调整合并）：*
 
@@ -128,4 +145,4 @@ sudo ip link set dev eth0 mtu 9000
 
 ## 总结
 
-优化网闸连接器性能，特别是在高吞吐量场景下，超越了应用层配置的范畴。通过战略性地调整与 UDP 缓冲、CPU 调度、网卡卸载和中断处理相关的内核参数，管理员可以充分发挥其硬件的潜力，实现跨网闸的可靠、高速数据传输。请务必在受控环境中彻底测试所有更改。
+优化网闸连接器性能，特别是在高吞吐量场景下，超越了[应用层配置](/zh-CN/configuration_reference)的范畴。通过战略性地调整与 UDP 缓冲、CPU 调度、网卡卸载和中断处理相关的内核参数，管理员可以充分发挥其硬件的潜力，实现跨网闸的可靠、高速数据传输。请务必在受控环境中彻底测试所有更改。

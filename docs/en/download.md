@@ -1,6 +1,20 @@
 ---
 layout: pure
 outline: deep
+title: Download DDC - Helm Charts & Docker Images
+description: Get the latest Data Diode Connector (DDC). Includes Kubernetes Helm Chart installation commands, Docker image pull references, and links to GitHub source code for compilation.
+head:
+  - - meta
+    - name: keywords
+      content: Download DDC, Helm Install, Docker Images, Source Code, ArtifactHub, Kubernetes Deployment
+seo:
+  proficiencyLevel: Beginner
+  keywords:
+    - Download DDC
+    - Helm Installation
+    - Docker Images
+    - Source Code
+    - Installation Guide
 ---
 
 # Download & Install

@@ -1,6 +1,24 @@
+---
+title: DDC Developer Guide - Custom Plugins & Compilation
+description: Guide for extending Data Diode Connector (DDC). Learn Rust workspace structure, how to implement custom protocol adapters (MQTT/HTTP) and filters, and instructions for cross-compiling to ARM64.
+head:
+  - - meta
+    - name: keywords
+      content: DDC Development, Rust Plugin, Protocol Adapter, Custom Filter, Source Compilation, Cross Compilation, Rust Workspace
+seo:
+  proficiencyLevel: Expert
+  keywords:
+    - Developer Guide
+    - Rust Development
+    - Protocol Adapter
+    - Custom Filter
+    - Cross Compilation
+    - Plugin System
+---
+
 # Developer Guide
 
-This guide is intended for developers who wish to extend the Data Diode Connector (DDC) by adding support for new protocols, creating custom filters, or modifying the core transport logic.
+This guide is intended for developers who wish to extend the Data Diode Connector (DDC) by adding support for new [protocols](/en/configuration_reference#core-protocol-configuration-protocolhandler), creating [custom filters](/en/security_model#content-filtering-and-sanitization), or modifying the core transport logic.
 
 ## Project Structure
 
@@ -8,7 +26,7 @@ The codebase is organized as a Rust workspace with several crates:
 
 *   `framework/`: Core libraries shared by all components.
     *   `osdd`: The main application runner and trait definitions.
-    *   `bip_utils`: Utilities for the Bipartite Buffer.
+    *   `bip_utils`: Utilities for the [Bipartite Buffer](/en/software_architecture#lock-free-buffering-bipbuffer).
     *   `logging`: Centralized logging setup.
 *   `protocol_handlers/`: Plugins for external communication.
     *   `ph_kafka`: Kafka Producer/Consumer implementation.
@@ -16,7 +34,7 @@ The codebase is organized as a Rust workspace with several crates:
     *   `ph_mock_handler`: Test stub.
 *   `filters/`: Content inspection plugins.
     *   `filter`: Basic keyword filtering.
-*   `settings/`: Default configuration files.
+*   `settings/`: Default [configuration files](/en/configuration_reference).
 
 ## Adding a New Protocol Handler
 
@@ -93,7 +111,7 @@ pub struct MyMessage {
 
 ## Creating a Custom Filter
 
-Filters are the easiest component to extend.
+[Filters](/en/configuration_reference#filter-configuration-filters) are the easiest component to extend.
 
 1.  Look at `filters/filter/src/lib.rs`.
 2.  The core function signature usually resembles:
