@@ -149,6 +149,10 @@ transportUdpSend:
   sendDelayMs: 5
   # -- Socket path is dynamically managed by the deployment template
 
+vector:
+  statsd:
+    enabled: false
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""

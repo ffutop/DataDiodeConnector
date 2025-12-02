@@ -11,7 +11,7 @@ data:
         type: syslog
         address: 0.0.0.0:8082
         mode: udp
-      {{- if .Values.vector.statsd.enabled }}
+      {{- if .Values.vector.statsd.enabled | default false }}
       statsd:
         type: statsd
         address: 0.0.0.0:8125
@@ -26,7 +26,7 @@ data:
             fields: [timestamp,appname,procid,severity,message]
         inputs:
           - syslog
-      {{- if .Values.vector.statsd.enabled }}
+      {{- if .Values.vector.statsd.enabled | default false }}
       console-statsd:
         type: console
         encoding:

@@ -148,6 +148,10 @@ transportUdpReceive:
   receiverPort: 1234
   # The socket path is dynamically managed by the deployment template
 
+vector:
+  statsd:
+    enabled: false
+
 imagePullSecrets: []
 nameOverride: ""
 fullnameOverride: ""
